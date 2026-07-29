@@ -1,0 +1,76 @@
+// Prisma schema for Course Tracker
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Semester {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  courses Course[]
+
+  @@map("semesters")
+}
+
+model Course {
+  id            String  @id @default(cuid())
+  semesterId    String  @map("semester_id")
+  name          String
+  totalLectures Int     @map("total_lectures")
+  credits       Float?
+  color         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  semester Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  lectures Lecture[]
+  homework Homework[]
+
+  @@index([semesterId])
+  @@map("courses")
+}
+
+model Lecture {
+  id              String  @id @default(cuid())
+  courseId        String  @map("course_id")
+  number          Int
+  title           String?
+  watched         Boolean @default(false)
+  summaryFileUrl  String? @map("summary_file_url")
+  summaryFileName String? @map("summary_file_name")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, number])
+  @@index([courseId])
+  @@map("lectures")
+}
+
+model Homework {
+  id                String    @id @default(cuid())
+  courseId          String    @map("course_id")
+  name              String
+  details           String?
+  dueDate           DateTime? @map("due_date")
+  assignmentFileUrl String?   @map("assignment_file_url")
+  assignmentFileName String?  @map("assignment_file_name")
+  answerText        String?   @map("answer_text")
+  answerFileUrl     String?   @map("answer_file_url")
+  answerFileName    String?   @map("answer_file_name")
+  completed         Boolean   @default(false)
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("homework")
+}
