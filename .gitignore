@@ -48,3 +48,6 @@ next-env.d.ts
 /.claude/skills
 /.windsurf/skills
 /skills-lock.json
+
+# local, machine-specific tool permissions
+.claude/settings.local.json

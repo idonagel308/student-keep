@@ -9,15 +9,30 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  semesters Semester[]
+
+  @@map("users")
+}
+
 model Semester {
   id        String   @id @default(cuid())
+  userId    String   @map("user_id")
   name      String
   startDate DateTime @map("start_date")
   endDate   DateTime @map("end_date")
   createdAt DateTime @default(now()) @map("created_at")
 
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   courses Course[]
 
+  @@index([userId])
   @@map("semesters")
 }
 

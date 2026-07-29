@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { UserMenu } from "@/components/UserMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
             <a href="/" className="text-lg font-semibold tracking-tight">
               📚 Course Tracker
             </a>
+            <UserMenu />
           </div>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">

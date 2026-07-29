@@ -6,11 +6,14 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { semesterProgress } from "@/lib/progress";
 import { formatDate } from "@/lib/format";
 import { cardClass } from "@/components/ui";
+import { requireUser } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const user = await requireUser();
   const semesters = await prisma.semester.findMany({
+    where: { userId: user.id },
     orderBy: { startDate: "desc" },
     include: {
       courses: { include: { lectures: true, homework: true } },

@@ -13,15 +13,19 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@vercel/blob": "^2.6.1",
+    "bcryptjs": "^3.0.3",
     "date-fns": "^4.4.0",
+    "jose": "^6.2.4",
     "next": "16.2.12",
     "pg": "^8.22.0",
     "prisma": "^7.9.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

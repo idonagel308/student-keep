@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
+import { assertOwnsCourse, assertOwnsHomework } from "@/lib/dal";
 
 async function maybeUpload(formData: FormData, field: string, prefix: string) {
   const file = formData.get(field);
@@ -20,6 +21,8 @@ export async function createHomework(formData: FormData) {
   const answerText = String(formData.get("answerText") ?? "").trim() || null;
 
   if (!courseId || !name) throw new Error("Assignment name is required.");
+
+  await assertOwnsCourse(courseId);
 
   const assignment = await maybeUpload(formData, "assignmentFile", `homework/${courseId}`);
   const answer = await maybeUpload(formData, "answerFile", `homework/${courseId}`);
@@ -51,11 +54,10 @@ export async function updateHomework(formData: FormData) {
 
   if (!id || !name) throw new Error("Assignment name is required.");
 
-  const existing = await prisma.homework.findUnique({ where: { id } });
-  if (!existing) throw new Error("Homework not found.");
+  const existing = await assertOwnsHomework(id);
 
-  const newAssignment = await maybeUpload(formData, "assignmentFile", `homework/${courseId}`);
-  const newAnswer = await maybeUpload(formData, "answerFile", `homework/${courseId}`);
+  const newAssignment = await maybeUpload(formData, "assignmentFile", `homework/${existing.courseId}`);
+  const newAnswer = await maybeUpload(formData, "answerFile", `homework/${existing.courseId}`);
 
   if (newAssignment) await deleteBlob(existing.assignmentFileUrl);
   if (newAnswer) await deleteBlob(existing.answerFileUrl);
@@ -84,8 +86,7 @@ export async function toggleHomework(formData: FormData) {
   const courseId = String(formData.get("courseId") ?? "");
   if (!id) throw new Error("Missing homework id.");
 
-  const existing = await prisma.homework.findUnique({ where: { id } });
-  if (!existing) throw new Error("Homework not found.");
+  const existing = await assertOwnsHomework(id);
 
   await prisma.homework.update({
     where: { id },
@@ -101,8 +102,7 @@ export async function removeHomeworkFile(formData: FormData) {
   const which = String(formData.get("which") ?? "");
   if (!id) throw new Error("Missing homework id.");
 
-  const existing = await prisma.homework.findUnique({ where: { id } });
-  if (!existing) throw new Error("Homework not found.");
+  const existing = await assertOwnsHomework(id);
 
   if (which === "assignment") {
     await deleteBlob(existing.assignmentFileUrl);
@@ -126,11 +126,9 @@ export async function deleteHomework(formData: FormData) {
   const courseId = String(formData.get("courseId") ?? "");
   if (!id) throw new Error("Missing homework id.");
 
-  const existing = await prisma.homework.findUnique({ where: { id } });
-  if (existing) {
-    await deleteBlob(existing.assignmentFileUrl);
-    await deleteBlob(existing.answerFileUrl);
-  }
+  const existing = await assertOwnsHomework(id);
+  await deleteBlob(existing.assignmentFileUrl);
+  await deleteBlob(existing.answerFileUrl);
 
   await prisma.homework.delete({ where: { id } });
   revalidatePath(`/courses/${courseId}`);

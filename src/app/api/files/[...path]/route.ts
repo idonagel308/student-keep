@@ -1,4 +1,5 @@
 import { get } from "@vercel/blob";
+import { canReadBlobPath } from "@/lib/dal";
 
 export async function GET(
   _request: Request,
@@ -6,6 +7,11 @@ export async function GET(
 ) {
   const { path } = await params;
   const pathname = path.map(decodeURIComponent).join("/");
+
+  // Same 404 for "not yours" and "doesn't exist" so paths can't be probed.
+  if (!(await canReadBlobPath(pathname))) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const result = await get(pathname, { access: "private" });
   if (!result) {

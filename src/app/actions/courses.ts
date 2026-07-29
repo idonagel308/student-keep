@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { assertOwnsCourse, assertOwnsSemester } from "@/lib/dal";
 
 export async function createCourse(formData: FormData) {
   const semesterId = String(formData.get("semesterId") ?? "");
@@ -17,6 +18,8 @@ export async function createCourse(formData: FormData) {
   if (!Number.isFinite(totalLectures) || totalLectures < 0) {
     throw new Error("Total lectures must be a non-negative number.");
   }
+
+  await assertOwnsSemester(semesterId);
 
   const course = await prisma.course.create({
     data: {
@@ -50,6 +53,8 @@ export async function updateCourse(formData: FormData) {
   if (!Number.isFinite(totalLectures) || totalLectures < 0) {
     throw new Error("Total lectures must be a non-negative number.");
   }
+
+  await assertOwnsCourse(id);
 
   const target = Math.floor(totalLectures);
 
@@ -92,6 +97,7 @@ export async function deleteCourse(formData: FormData) {
   const semesterId = String(formData.get("semesterId") ?? "");
   if (!id) throw new Error("Missing course id.");
 
+  await assertOwnsCourse(id);
   await prisma.course.delete({ where: { id } });
 
   revalidatePath("/");

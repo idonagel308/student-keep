@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { btnSecondary } from "@/components/ui";
+import { requireUser } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,9 @@ export default async function CoursePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const course = await prisma.course.findUnique({
-    where: { id },
+  const user = await requireUser();
+  const course = await prisma.course.findFirst({
+    where: { id, semester: { userId: user.id } },
     include: {
       lectures: { orderBy: { number: "asc" } },
       homework: true,

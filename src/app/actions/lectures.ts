@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
+import { assertOwnsLecture } from "@/lib/dal";
 
 export async function toggleLecture(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const courseId = String(formData.get("courseId") ?? "");
   if (!id) throw new Error("Missing lecture id.");
 
-  const lecture = await prisma.lecture.findUnique({ where: { id } });
-  if (!lecture) throw new Error("Lecture not found.");
+  const lecture = await assertOwnsLecture(id);
 
   await prisma.lecture.update({
     where: { id },
@@ -26,6 +26,8 @@ export async function updateLectureTitle(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim() || null;
   if (!id) throw new Error("Missing lecture id.");
 
+  await assertOwnsLecture(id);
+
   await prisma.lecture.update({ where: { id }, data: { title } });
   revalidatePath(`/courses/${courseId}`);
 }
@@ -39,8 +41,8 @@ export async function uploadLectureSummary(formData: FormData) {
     throw new Error("Please choose a PDF file.");
   }
 
-  const existing = await prisma.lecture.findUnique({ where: { id } });
-  await deleteBlob(existing?.summaryFileUrl);
+  const existing = await assertOwnsLecture(id);
+  await deleteBlob(existing.summaryFileUrl);
 
   const { url, name } = await uploadPdf(file, `lectures/${id}`);
 
@@ -57,8 +59,8 @@ export async function removeLectureSummary(formData: FormData) {
   const courseId = String(formData.get("courseId") ?? "");
   if (!id) throw new Error("Missing lecture id.");
 
-  const existing = await prisma.lecture.findUnique({ where: { id } });
-  await deleteBlob(existing?.summaryFileUrl);
+  const existing = await assertOwnsLecture(id);
+  await deleteBlob(existing.summaryFileUrl);
 
   await prisma.lecture.update({
     where: { id },

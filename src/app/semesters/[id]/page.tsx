@@ -10,6 +10,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { courseProgress } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { cardClass, btnSecondary } from "@/components/ui";
+import { requireUser } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,9 @@ export default async function SemesterPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const semester = await prisma.semester.findUnique({
-    where: { id },
+  const user = await requireUser();
+  const semester = await prisma.semester.findFirst({
+    where: { id, userId: user.id },
     include: {
       courses: {
         orderBy: { createdAt: "asc" },
