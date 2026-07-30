@@ -67,6 +67,7 @@ export async function createHomework(
   });
 
   revalidatePath(`/courses/${courseId}`);
+  revalidatePath("/");
 }
 
 export async function updateHomework(
@@ -118,6 +119,7 @@ export async function updateHomework(
   });
 
   revalidatePath(`/courses/${existing.courseId}`);
+  revalidatePath("/");
 }
 
 export async function toggleHomework(formData: FormData) {
@@ -132,6 +134,7 @@ export async function toggleHomework(formData: FormData) {
   });
 
   revalidatePath(`/courses/${existing.courseId}`);
+  revalidatePath("/");
 }
 
 export async function removeHomeworkFile(formData: FormData) {
@@ -156,6 +159,7 @@ export async function removeHomeworkFile(formData: FormData) {
   }
 
   revalidatePath(`/courses/${existing.courseId}`);
+  revalidatePath("/");
 }
 
 export async function deleteHomework(formData: FormData) {
@@ -168,4 +172,5 @@ export async function deleteHomework(formData: FormData) {
 
   await prisma.homework.delete({ where: { id } });
   revalidatePath(`/courses/${existing.courseId}`);
+  revalidatePath("/");
 }

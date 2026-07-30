@@ -64,6 +64,13 @@
   --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 }
 
+/* dir="rtl" (Hebrew) swaps to Frank Ruhl Libre, matching the mock — Source
+   Serif 4's own Hebrew glyphs aren't used for RTL. */
+[dir="rtl"] {
+  --font-heading: var(--font-frank-ruhl, "Frank Ruhl Libre"), system-ui, sans-serif;
+  --font-body: var(--font-frank-ruhl, "Frank Ruhl Libre"), system-ui, sans-serif;
+}
+
 /* Manually toggled via data-theme on <html>, persisted to localStorage —
    not prefers-color-scheme; see ThemeToggle.tsx. */
 :root[data-theme="dark"] {
@@ -441,7 +448,6 @@ textarea.input {
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
   font-size: 18px;
-  margin-right: auto;
   text-decoration: none;
   color: inherit;
 }
@@ -541,4 +547,14 @@ textarea.input {
 }
 .animate-in {
   animation: ct-in 0.3s ease both;
+}
+
+/* Back-link arrows are a literal "←" character, not an SVG — mirror it
+   under RTL rather than swapping to a different glyph, so bold/italic
+   Markdown-adjacent copy still just reads as plain text. */
+.back-arrow {
+  display: inline-block;
+}
+[dir="rtl"] .back-arrow {
+  transform: scaleX(-1);
 }

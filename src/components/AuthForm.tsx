@@ -4,28 +4,33 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { inputClass, labelClass, btnPrimary } from "@/components/ui";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 import type { AuthState } from "@/app/actions/auth";
 
 type Props = {
   mode: "login" | "signup";
   action: (state: AuthState, formData: FormData) => Promise<AuthState>;
+  lang: Lang;
 };
 
 function PasswordToggle({
   shown,
   onClick,
+  lang,
 }: {
   shown: boolean;
   onClick: () => void;
+  lang: Lang;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={shown ? "Hide password" : "Show password"}
+      aria-label={shown ? t(lang, "hidePassword") : t(lang, "showPassword")}
       style={{
         position: "absolute",
-        right: 4,
+        insetInlineEnd: 4,
         top: "50%",
         transform: "translateY(-50%)",
         display: "inline-flex",
@@ -46,7 +51,7 @@ function PasswordToggle({
   );
 }
 
-export function AuthForm({ mode, action }: Props) {
+export function AuthForm({ mode, action, lang }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const isSignup = mode === "signup";
 
@@ -68,7 +73,7 @@ export function AuthForm({ mode, action }: Props) {
       {isSignup && (
         <div className="field">
           <label className={labelClass} htmlFor="name">
-            Name (optional)
+            {t(lang, "nameLabel")}
           </label>
           <input id="name" name="name" className={inputClass} />
         </div>
@@ -76,7 +81,7 @@ export function AuthForm({ mode, action }: Props) {
 
       <div className="field">
         <label className={labelClass} htmlFor="email">
-          Email
+          {t(lang, "emailLabel")}
         </label>
         <input
           id="email"
@@ -90,7 +95,7 @@ export function AuthForm({ mode, action }: Props) {
 
       <div className="field">
         <label className={labelClass} htmlFor="password">
-          Password
+          {t(lang, "passwordLabel")}
         </label>
         <div style={{ position: "relative" }}>
           <input
@@ -103,13 +108,13 @@ export function AuthForm({ mode, action }: Props) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={inputClass}
-            style={{ paddingRight: 36 }}
+            style={{ paddingInlineEnd: 36 }}
           />
-          <PasswordToggle shown={showPassword} onClick={() => setShowPassword((v) => !v)} />
+          <PasswordToggle shown={showPassword} onClick={() => setShowPassword((v) => !v)} lang={lang} />
         </div>
         {isSignup && (
           <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-neutral-600)" }}>
-            At least 8 characters.
+            {t(lang, "minPasswordNote")}
           </p>
         )}
       </div>
@@ -117,7 +122,7 @@ export function AuthForm({ mode, action }: Props) {
       {isSignup && (
         <div className="field">
           <label className={labelClass} htmlFor="confirmPassword">
-            Confirm password
+            {t(lang, "confirmPasswordLabel")}
           </label>
           <div style={{ position: "relative" }}>
             <input
@@ -129,13 +134,13 @@ export function AuthForm({ mode, action }: Props) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={inputClass}
-              style={{ paddingRight: 36 }}
+              style={{ paddingInlineEnd: 36 }}
             />
-            <PasswordToggle shown={showConfirm} onClick={() => setShowConfirm((v) => !v)} />
+            <PasswordToggle shown={showConfirm} onClick={() => setShowConfirm((v) => !v)} lang={lang} />
           </div>
           {mismatch && (
             <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-accent-2)" }}>
-              Passwords do not match.
+              {t(lang, "passwordMismatch")}
             </p>
           )}
         </div>
@@ -144,7 +149,7 @@ export function AuthForm({ mode, action }: Props) {
       {isSignup && (
         <div className="field">
           <label className={labelClass} htmlFor="inviteCode">
-            Invite code
+            {t(lang, "inviteCodeLabel")}
           </label>
           <input id="inviteCode" name="inviteCode" required className={inputClass} />
         </div>
@@ -163,21 +168,21 @@ export function AuthForm({ mode, action }: Props) {
       >
         {pending
           ? isSignup
-            ? "Creating account…"
-            : "Signing in…"
+            ? t(lang, "creatingAccount")
+            : t(lang, "signingIn")
           : isSignup
-            ? "Create account"
-            : "Sign in"}
+            ? t(lang, "createAccount")
+            : t(lang, "signIn")}
       </button>
 
       <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-neutral-600)", margin: 0 }}>
         {isSignup ? (
           <>
-            Already have an account? <Link href="/login">Sign in</Link>
+            {t(lang, "alreadyHaveAccount")} <Link href="/login">{t(lang, "signIn")}</Link>
           </>
         ) : (
           <>
-            Have an invite code? <Link href="/signup">Create an account</Link>
+            {t(lang, "haveInvite")} <Link href="/signup">{t(lang, "createAccount")}</Link>
           </>
         )}
       </p>

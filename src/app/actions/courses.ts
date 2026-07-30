@@ -20,6 +20,21 @@ function parseCredits(raw: string): number | null {
   return n;
 }
 
+function parseExamScore(raw: string): number | null {
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 100) {
+    throw new Error("Grade must be a number between 0 and 100.");
+  }
+  return n;
+}
+
+function weeklyDate(start: Date, weekIndex: number): Date {
+  const d = new Date(start);
+  d.setUTCDate(d.getUTCDate() + weekIndex * 7);
+  return d;
+}
+
 export async function createCourse(
   _prevState: ActionState,
   formData: FormData
@@ -41,10 +56,10 @@ export async function createCourse(
   try {
     credits = parseCredits(creditsRaw);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Invalid credits." };
+    return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
-  await assertOwnsSemester(semesterId);
+  const semester = await assertOwnsSemester(semesterId);
 
   await prisma.course.create({
     data: {
@@ -56,12 +71,14 @@ export async function createCourse(
       lectures: {
         create: Array.from({ length: Math.floor(totalLectures) }, (_, i) => ({
           number: i + 1,
+          scheduledDate: weeklyDate(semester.startDate, i),
         })),
       },
     },
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
 }
 
@@ -85,7 +102,7 @@ export async function updateCourse(
   try {
     credits = parseCredits(creditsRaw);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Invalid credits." };
+    return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
   await assertOwnsCourse(id);
@@ -99,10 +116,18 @@ export async function updateCourse(
   const currentCount = existing.length;
 
   if (target > currentCount) {
+    // Continue the weekly cadence from the last existing lecture's date
+    // (rather than re-basing from the semester start), so extending a
+    // course doesn't reshuffle dates that may already be hand-edited.
+    const last = existing[existing.length - 1];
+    const anchor = last?.scheduledDate ?? (await assertOwnsSemester(semesterId)).startDate;
+    const anchorWeekOffset = last?.scheduledDate ? 1 : 0;
+
     await prisma.lecture.createMany({
       data: Array.from({ length: target - currentCount }, (_, i) => ({
         courseId: id,
         number: currentCount + i + 1,
+        scheduledDate: weeklyDate(anchor, i + anchorWeekOffset),
       })),
     });
   } else if (target < currentCount) {
@@ -122,8 +147,37 @@ export async function updateCourse(
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
   revalidatePath(`/courses/${id}`);
+}
+
+/** Sets or clears a course's final grade. Separate from updateCourse so
+ * editing the course's other details never accidentally wipes the grade. */
+export async function setCourseGrade(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  const examScoreRaw = String(formData.get("examScore") ?? "").trim();
+  if (!id) return { error: "Missing course id." };
+
+  let examScore: number | null;
+  try {
+    examScore = parseExamScore(examScoreRaw);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid grade." };
+  }
+
+  const course = await assertOwnsCourse(id);
+
+  await prisma.course.update({ where: { id }, data: { examScore } });
+
+  revalidatePath("/");
+  revalidatePath("/semesters");
+  revalidatePath(`/semesters/${course.semesterId}`);
+  revalidatePath(`/courses/${id}`);
+  revalidatePath("/degree");
 }
 
 export async function deleteCourse(formData: FormData) {
@@ -135,6 +189,7 @@ export async function deleteCourse(formData: FormData) {
   await prisma.course.delete({ where: { id } });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
   redirect(`/semesters/${semesterId}`);
 }

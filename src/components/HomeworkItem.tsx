@@ -10,6 +10,8 @@ import {
 } from "@/app/actions/homework";
 import { formatDate, formatDateInput, dueLabel, dueStatus } from "@/lib/format";
 import { CheckIcon } from "@/components/icons";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 import type { Homework } from "@/generated/prisma/client";
 
 const dueColors: Record<string, string> = {
@@ -18,7 +20,7 @@ const dueColors: Record<string, string> = {
   upcoming: "var(--color-neutral-600)",
 };
 
-export function HomeworkItem({ hw }: { hw: Homework }) {
+export function HomeworkItem({ hw, lang }: { hw: Homework; lang: Lang }) {
   return (
     <li className="card" style={{ padding: 14, gap: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -29,7 +31,7 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
             type="submit"
             className="check-box"
             aria-pressed={hw.completed}
-            aria-label={hw.completed ? "Mark incomplete" : "Mark complete"}
+            aria-label={hw.completed ? t(lang, "markNotDone") : t(lang, "markDone")}
           >
             <CheckIcon checked={hw.completed} />
           </button>
@@ -80,21 +82,23 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
             {hw.assignmentFileUrl && (
               <FileChip
                 url={hw.assignmentFileUrl}
-                label="📎 Assignment"
+                label={t(lang, "assignmentFileChip")}
                 removeAction={removeHomeworkFile}
                 hwId={hw.id}
                 courseId={hw.courseId}
                 which="assignment"
+                lang={lang}
               />
             )}
             {hw.answerFileUrl && (
               <FileChip
                 url={hw.answerFileUrl}
-                label="✍️ My answer (PDF)"
+                label={t(lang, "answerFileChip")}
                 removeAction={removeHomeworkFile}
                 hwId={hw.id}
                 courseId={hw.courseId}
                 which="answer"
+                lang={lang}
               />
             )}
           </div>
@@ -109,7 +113,7 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
               }}
             >
               <p style={{ marginBottom: 4, fontSize: 11, fontWeight: 600, color: "var(--color-neutral-600)" }}>
-                My typed answer
+                {t(lang, "myTypedAnswer")}
               </p>
               <p style={{ whiteSpace: "pre-wrap", fontSize: 13, margin: 0 }}>{hw.answerText}</p>
             </div>
@@ -119,10 +123,11 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
             <HomeworkForm
               action={updateHomework}
               courseId={hw.courseId}
-              title="Edit homework"
-              triggerLabel="Edit"
+              title={t(lang, "editHomeworkTitle")}
+              triggerLabel={t(lang, "edit")}
               triggerClassName="btn btn-ghost"
-              triggerAriaLabel={`Edit ${hw.name}`}
+              triggerAriaLabel={`${t(lang, "edit")} ${hw.name}`}
+              lang={lang}
               initial={{
                 id: hw.id,
                 name: hw.name,
@@ -136,10 +141,10 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
             <DeleteButton
               action={deleteHomework}
               hidden={{ id: hw.id, courseId: hw.courseId }}
-              label="Delete"
-              ariaLabel={`Delete ${hw.name}`}
+              label={t(lang, "delete")}
+              ariaLabel={`${t(lang, "delete")} ${hw.name}`}
               className="btn btn-ghost-danger"
-              confirmMessage="Delete this homework item?"
+              confirmMessage={t(lang, "deleteHomeworkConfirm")}
             />
           </div>
         </div>
@@ -155,6 +160,7 @@ function FileChip({
   hwId,
   courseId,
   which,
+  lang,
 }: {
   url: string;
   label: string;
@@ -162,6 +168,7 @@ function FileChip({
   hwId: string;
   courseId: string;
   which: string;
+  lang: Lang;
 }) {
   return (
     <span className="tag tag-neutral" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -175,7 +182,7 @@ function FileChip({
         <button
           type="submit"
           style={{ color: "var(--color-accent-2)", background: "none", border: 0, cursor: "pointer" }}
-          aria-label={`Remove ${which} file`}
+          aria-label={t(lang, "removeFileAria", which)}
         >
           ✕
         </button>

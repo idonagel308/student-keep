@@ -11,6 +11,8 @@ import { EditIcon, DeleteIcon, PlusIcon } from "@/components/icons";
 import { courseProgress } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export default async function SemesterPage({
 }) {
   const { id } = await params;
   const user = await requireUser();
+  const lang = await getLang();
   const semester = await prisma.semester.findFirst({
     where: { id, userId: user.id },
     include: {
@@ -33,13 +36,80 @@ export default async function SemesterPage({
 
   if (!semester) notFound();
 
+  const now = new Date();
+  const isActive = semester.startDate <= now && semester.endDate >= now;
+  const allLectures = semester.courses.flatMap((c) => c.lectures);
+  const totalLectures = allLectures.length;
+  const watchedLectures = allLectures.filter((l) => l.watched).length;
+  const dueLectures = allLectures.filter((l) => l.scheduledDate && l.scheduledDate <= now).length;
+  const diff = watchedLectures - dueLectures;
+  const elapsed =
+    semester.endDate > semester.startDate
+      ? Math.max(
+          0,
+          Math.min(1, (now.getTime() - semester.startDate.getTime()) / (semester.endDate.getTime() - semester.startDate.getTime()))
+        )
+      : 0;
+  const showPace = isActive && totalLectures > 0;
+  const paceNote =
+    diff === 0 ? t(lang, "onTrack") : diff > 0 ? t(lang, "aheadBy", diff) : t(lang, "behindBy", -diff);
+
   return (
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
-        <Link href="/" style={{ fontSize: 13 }}>
-          ← All semesters
+        <Link href="/semesters" style={{ fontSize: 13 }}>
+          <span className="back-arrow">←</span> {t(lang, "semesters")}
         </Link>
       </div>
+
+      {showPace && (
+        <div style={{ marginBottom: 34, maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginBottom: 9 }}>
+            <span
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-accent)",
+              }}
+            >
+              {t(lang, "pace")}
+            </span>
+            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+              {t(lang, "semesterElapsed", Math.round(elapsed * 100))}
+            </span>
+          </div>
+          <div style={{ position: "relative", height: 10, borderRadius: 99, background: "var(--color-neutral-300)", overflow: "visible" }}>
+            <div
+              style={{
+                width: `${totalLectures ? (watchedLectures / totalLectures) * 100 : 0}%`,
+                height: "100%",
+                background: diff < 0 ? "var(--color-accent-2)" : "var(--color-accent)",
+                borderRadius: 99,
+                transition: "width .7s cubic-bezier(.2,.8,.3,1), background .3s ease",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: -5,
+                bottom: -5,
+                insetInlineStart: `${totalLectures ? (dueLectures / totalLectures) * 100 : 0}%`,
+                width: 2,
+                background: "var(--color-text)",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginTop: 9 }}>
+            <span style={{ fontSize: 13, color: diff < 0 ? "var(--color-accent-2)" : "var(--color-neutral-700)" }}>
+              {paceNote}
+            </span>
+            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+              {t(lang, "lectureCount", watchedLectures, totalLectures)} · {t(lang, "expectedBy", dueLectures)}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div
         style={{
@@ -61,7 +131,7 @@ export default async function SemesterPage({
               marginBottom: 8,
             }}
           >
-            Semester
+            {t(lang, "semesterKicker")}
           </div>
           <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 6px" }}>
             {semester.name}
@@ -73,9 +143,10 @@ export default async function SemesterPage({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SemesterForm
             action={updateSemester}
-            title="Edit semester"
-            triggerLabel="Edit"
+            title={t(lang, "editSemester")}
+            triggerLabel={t(lang, "edit")}
             triggerClassName="btn btn-secondary"
+            lang={lang}
             initial={{
               id: semester.id,
               name: semester.name,
@@ -86,7 +157,8 @@ export default async function SemesterPage({
           <DeleteButton
             action={deleteSemester}
             hidden={{ id: semester.id }}
-            confirmMessage="Delete this semester and all its courses? This cannot be undone."
+            label={t(lang, "delete")}
+            confirmMessage={t(lang, "deleteSemesterConfirm")}
             className="btn btn-ghost-danger"
           />
         </div>
@@ -94,7 +166,7 @@ export default async function SemesterPage({
 
       {semester.courses.length === 0 && (
         <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-          No courses yet. Add your first one below.
+          {t(lang, "noCoursesYet")}
         </p>
       )}
       <div
@@ -132,7 +204,7 @@ export default async function SemesterPage({
                   </div>
                   {c.credits != null && (
                     <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "0 0 12px" }}>
-                      {c.credits} credits
+                      {t(lang, "creditsCount", c.credits)}
                     </p>
                   )}
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -147,7 +219,7 @@ export default async function SemesterPage({
                           fontFeatureSettings: "'tnum' 1",
                         }}
                       >
-                        <span>Lectures</span>
+                        <span>{t(lang, "lecturesLabel")}</span>
                         <span>
                           {p.watched}/{p.totalLectures}
                         </span>
@@ -159,7 +231,7 @@ export default async function SemesterPage({
                       />
                     </div>
                     <p style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: 0 }}>
-                      Homework: {p.doneHw}/{p.totalHw} done
+                      {t(lang, "homeworkDone", p.doneHw, p.totalHw)}
                     </p>
                   </div>
                 </Link>
@@ -176,10 +248,11 @@ export default async function SemesterPage({
                   <CourseForm
                     action={updateCourse}
                     semesterId={semester.id}
-                    title="Edit course"
+                    title={t(lang, "editCourseTitle")}
                     triggerLabel={<EditIcon />}
                     triggerClassName="btn btn-icon btn-ghost"
-                    triggerAriaLabel={`Edit ${c.name}`}
+                    triggerAriaLabel={`${t(lang, "edit")} ${c.name}`}
+                    lang={lang}
                     initial={{
                       id: c.id,
                       name: c.name,
@@ -192,9 +265,9 @@ export default async function SemesterPage({
                     action={deleteCourse}
                     hidden={{ id: c.id, semesterId: semester.id }}
                     label={<DeleteIcon />}
-                    ariaLabel={`Delete ${c.name}`}
+                    ariaLabel={`${t(lang, "delete")} ${c.name}`}
                     className="btn btn-icon btn-ghost-danger"
-                    confirmMessage="Delete this course and all its lectures and homework?"
+                    confirmMessage={t(lang, "deleteCourseConfirm")}
                   />
                 </div>
               </div>
@@ -203,16 +276,17 @@ export default async function SemesterPage({
         <CourseForm
           action={createCourse}
           semesterId={semester.id}
-          title="Add course"
+          title={t(lang, "addCourse")}
           triggerClassName="card-dashed"
+          lang={lang}
           triggerLabel={
             <>
               <PlusIcon />
               <span style={{ display: "block", fontWeight: 600, fontSize: 17, marginTop: 8 }}>
-                Add course
+                {t(lang, "addCourse")}
               </span>
               <span style={{ display: "block", fontSize: 12, color: "var(--color-neutral-600)" }}>
-                Track a new course this semester
+                {t(lang, "addCourseSub")}
               </span>
             </>
           }

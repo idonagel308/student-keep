@@ -6,12 +6,16 @@ import { updateCourse, deleteCourse } from "@/app/actions/courses";
 import { HomeworkForm } from "@/components/forms/HomeworkForm";
 import { HomeworkItem } from "@/components/HomeworkItem";
 import { LectureRow } from "@/components/LectureRow";
+import { ScheduleWeeklyButton } from "@/components/ScheduleWeeklyButton";
 import { CourseForm } from "@/components/forms/CourseForm";
+import { CourseGrade } from "@/components/forms/CourseGrade";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { ProgressRing } from "@/components/ProgressRing";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +26,7 @@ export default async function CoursePage({
 }) {
   const { id } = await params;
   const user = await requireUser();
+  const lang = await getLang();
   const course = await prisma.course.findFirst({
     where: { id, semester: { userId: user.id } },
     include: {
@@ -68,7 +73,7 @@ export default async function CoursePage({
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
         <Link href={`/semesters/${course.semesterId}`} style={{ fontSize: 13 }}>
-          ← {course.semester.name}
+          <span className="back-arrow">←</span> {course.semester.name}
         </Link>
       </div>
 
@@ -88,15 +93,16 @@ export default async function CoursePage({
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           {course.credits != null && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
-              {course.credits} credits
+              {t(lang, "creditsCount", course.credits)}
             </p>
           )}
           <CourseForm
             action={updateCourse}
             semesterId={course.semesterId}
-            title="Edit course"
-            triggerLabel="Edit"
+            title={t(lang, "editCourseTitle")}
+            triggerLabel={t(lang, "edit")}
             triggerClassName="btn btn-ghost"
+            lang={lang}
             initial={{
               id: course.id,
               name: course.name,
@@ -108,10 +114,12 @@ export default async function CoursePage({
           <DeleteButton
             action={deleteCourse}
             hidden={{ id: course.id, semesterId: course.semesterId }}
+            label={t(lang, "delete")}
             className="btn btn-ghost-danger"
-            confirmMessage="Delete this course and all its lectures and homework?"
+            confirmMessage={t(lang, "deleteCourseConfirm")}
           />
         </div>
+        <CourseGrade courseId={course.id} examScore={course.examScore} lang={lang} />
       </div>
 
       <div
@@ -127,24 +135,29 @@ export default async function CoursePage({
             <ProgressRing pct={lecturePct} size={72} stroke={5} color={course.color ?? undefined} labelSize={16} />
             <div>
               <h2 style={{ fontSize: 22, margin: "0 0 4px", fontFeatureSettings: "'tnum' 1" }}>
-                {watched} / {totalLectures} lectures watched
+                {t(lang, "lecturesWatched", watched, totalLectures)}
               </h2>
               <p style={{ margin: 0, fontSize: 13, color: "var(--color-neutral-600)" }}>
-                Track what you&apos;ve caught up on
+                {t(lang, "trackCaughtUp")}
               </p>
             </div>
           </div>
 
           {course.lectures.length === 0 ? (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>
-              No lectures. Edit the course to set a lecture count.
+              {t(lang, "noLecturesYet")}
             </p>
           ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {course.lectures.map((l) => (
-                <LectureRow key={l.id} lecture={l} />
-              ))}
-            </ul>
+            <>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {course.lectures.map((l) => (
+                  <LectureRow key={l.id} lecture={l} lang={lang} />
+                ))}
+              </ul>
+              <div style={{ marginTop: 12 }}>
+                <ScheduleWeeklyButton courseId={course.id} lang={lang} />
+              </div>
+            </>
           )}
         </section>
 
@@ -159,13 +172,14 @@ export default async function CoursePage({
             }}
           >
             <h2 style={{ fontSize: 22, margin: 0, fontFeatureSettings: "'tnum' 1" }}>
-              {doneHw} / {totalHw} homework done
+              {t(lang, "homeworkDone", doneHw, totalHw)}
             </h2>
             <HomeworkForm
               action={createHomework}
               courseId={course.id}
-              title="Add homework"
-              triggerLabel="+ Add"
+              title={t(lang, "addHomework")}
+              triggerLabel={t(lang, "addShort")}
+              lang={lang}
             />
           </div>
           <ProgressBar value={doneHw} total={totalHw} className="mb-4" />
@@ -185,7 +199,7 @@ export default async function CoursePage({
                   margin: 0,
                 }}
               >
-                Upcoming due dates
+                {t(lang, "upcomingDueDates")}
               </p>
               <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                 {upcoming.map((h) => (
@@ -206,11 +220,11 @@ export default async function CoursePage({
           )}
 
           {course.homework.length === 0 ? (
-            <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>No homework yet.</p>
+            <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>{t(lang, "noHomeworkYet")}</p>
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               {homeworkSorted.map((h) => (
-                <HomeworkItem key={h.id} hw={h} />
+                <HomeworkItem key={h.id} hw={h} lang={lang} />
               ))}
             </ul>
           )}
