@@ -36,7 +36,7 @@ export default async function SemesterPage({
   return (
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
-        <Link href="/" style={{ fontSize: 13 }}>
+        <Link href="/semesters" style={{ fontSize: 13 }}>
           ← All semesters
         </Link>
       </div>

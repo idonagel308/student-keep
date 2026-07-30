@@ -78,6 +78,7 @@ export async function createCourse(
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
 }
 
@@ -146,6 +147,7 @@ export async function updateCourse(
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
   revalidatePath(`/courses/${id}`);
 }
@@ -172,6 +174,7 @@ export async function setCourseGrade(
   await prisma.course.update({ where: { id }, data: { examScore } });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${course.semesterId}`);
   revalidatePath(`/courses/${id}`);
   revalidatePath("/degree");
@@ -186,6 +189,7 @@ export async function deleteCourse(formData: FormData) {
   await prisma.course.delete({ where: { id } });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${semesterId}`);
   redirect(`/semesters/${semesterId}`);
 }

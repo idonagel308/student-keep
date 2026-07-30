@@ -4,8 +4,10 @@ import { Source_Serif_4, Frank_Ruhl_Libre } from "next/font/google";
 import "./globals.css";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SettingsTrigger } from "@/components/SettingsTrigger";
+import { NavTabs } from "@/components/NavTabs";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
+import { getCurrentUser } from "@/lib/dal";
 
 const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
@@ -45,6 +47,7 @@ export default async function RootLayout({
 }>) {
   const lang = await getLang();
   const dir = lang === "he" ? "rtl" : "ltr";
+  const user = await getCurrentUser();
 
   return (
     <html
@@ -61,6 +64,7 @@ export default async function RootLayout({
           <Link href="/" className="nav-brand">
             {t(lang, "brand")}
           </Link>
+          {user && <NavTabs lang={lang} />}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginInlineStart: "auto" }}>
             <ThemeToggle lang={lang} />
             <SettingsTrigger lang={lang} />

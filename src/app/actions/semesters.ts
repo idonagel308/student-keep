@@ -45,6 +45,7 @@ export async function createSemester(
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
 }
 
 export async function updateSemester(
@@ -80,6 +81,7 @@ export async function updateSemester(
   });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   revalidatePath(`/semesters/${id}`);
 }
 
@@ -91,5 +93,6 @@ export async function deleteSemester(formData: FormData) {
   await prisma.semester.delete({ where: { id } });
 
   revalidatePath("/");
+  revalidatePath("/semesters");
   redirect("/");
 }

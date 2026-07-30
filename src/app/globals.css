@@ -448,7 +448,6 @@ textarea.input {
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
   font-size: 18px;
-  margin-right: auto;
   text-decoration: none;
   color: inherit;
 }

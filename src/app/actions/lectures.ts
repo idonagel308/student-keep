@@ -29,6 +29,7 @@ export async function toggleLecture(formData: FormData) {
   // path here, but trusting it on principle invites copy-paste mistakes
   // where it later gets used for something that matters.
   revalidatePath(`/courses/${lecture.courseId}`);
+  revalidatePath("/");
 }
 
 export async function updateLecture(
@@ -51,6 +52,7 @@ export async function updateLecture(
 
   await prisma.lecture.update({ where: { id }, data: { title, scheduledDate } });
   revalidatePath(`/courses/${lecture.courseId}`);
+  revalidatePath("/");
 }
 
 /**
@@ -83,6 +85,7 @@ export async function scheduleLecturesWeekly(formData: FormData) {
   );
 
   revalidatePath(`/courses/${courseId}`);
+  revalidatePath("/");
 }
 
 export async function uploadLectureSummary(
