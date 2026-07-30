@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+
+type DegreeCourse = {
+  id: string;
+  name: string;
+  semesterName: string;
+  color: string | null;
+  credits: number | null;
+  examScore: number | null;
+};
+
+function gradeStyle(examScore: number | null): React.CSSProperties {
+  const base: React.CSSProperties = {
+    flex: "none",
+    fontSize: 12,
+    padding: "3px 9px",
+    borderRadius: "var(--radius-md)",
+    fontFeatureSettings: "'tnum' 1",
+  };
+  if (examScore === null) return { ...base, color: "var(--color-neutral-500)" };
+  return examScore >= 60
+    ? { ...base, background: "var(--color-accent-100)", color: "var(--color-accent-800)" }
+    : { ...base, background: "var(--color-accent-2-100)", color: "var(--color-accent-2-800)" };
+}
+
+export function DegreeCourseList({ courses }: { courses: DegreeCourse[] }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+
+  const pool = courses.filter(
+    (c) => !q || `${c.name} ${c.semesterName}`.toLowerCase().includes(q)
+  );
+  const list = q
+    ? [...pool].sort((a, b) => a.name.localeCompare(b.name))
+    : pool
+        .filter((c) => c.examScore !== null)
+        .sort((a, b) => (b.examScore ?? 0) - (a.examScore ?? 0));
+
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 20, maxWidth: 340 }}>
+        <input
+          type="search"
+          placeholder="Search courses…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="input"
+          style={{ padding: "8px 11px", fontSize: "13.5px" }}
+        />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {list.map((c) => (
+          <Link
+            key={c.id}
+            href={`/courses/${c.id}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 13,
+              padding: "11px 10px",
+              margin: "0 -10px",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: c.color ?? "var(--color-accent)",
+                flex: "none",
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "14.5px" }}>{c.name}</div>
+              <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
+                {c.semesterName}
+                {c.credits != null ? ` · ${c.credits} credits` : ""}
+              </div>
+            </div>
+            <span style={gradeStyle(c.examScore)}>{c.examScore === null ? "—" : c.examScore}</span>
+          </Link>
+        ))}
+      </div>
+      {list.length === 0 && (
+        <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
+          {q ? "No courses match that." : "No final grades recorded yet."}
+        </p>
+      )}
+    </>
+  );
+}
