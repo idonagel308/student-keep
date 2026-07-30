@@ -1,4 +1,4 @@
-import { get } from "@vercel/blob";
+import { getStoredPdf, isSafeStoragePath } from "@/lib/blob";
 import { canReadBlobPath } from "@/lib/dal";
 
 export async function GET(
@@ -11,8 +11,8 @@ export async function GET(
   // characters like "/" after this function returns. Reject traversal and
   // empty segments outright as defense in depth — canReadBlobPath's exact
   // stored-URL match is the real authorization boundary, this just keeps
-  // obviously-malformed paths from ever reaching it or the blob store.
-  if (path.length === 0 || path.some((seg) => seg === "" || seg === "." || seg === "..")) {
+  // obviously-malformed paths from ever reaching it or the storage backend.
+  if (!isSafeStoragePath(path)) {
     return new Response("Not found", { status: 404 });
   }
   const pathname = path.join("/");
@@ -22,14 +22,14 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const result = await get(pathname, { access: "private" });
+  const result = await getStoredPdf(pathname);
   if (!result) {
     return new Response("Not found", { status: 404 });
   }
 
-  return new Response(result.stream, {
+  return new Response(result.body as BodyInit, {
     headers: {
-      "Content-Type": result.blob.contentType ?? "application/pdf",
+      "Content-Type": result.contentType ?? "application/pdf",
       "Content-Disposition": `inline; filename="${encodeURIComponent(
         pathname.split("/").pop() ?? "file.pdf"
       )}"`,
