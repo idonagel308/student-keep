@@ -33,6 +33,28 @@ export default async function SemesterPage({
 
   if (!semester) notFound();
 
+  const now = new Date();
+  const isActive = semester.startDate <= now && semester.endDate >= now;
+  const allLectures = semester.courses.flatMap((c) => c.lectures);
+  const totalLectures = allLectures.length;
+  const watchedLectures = allLectures.filter((l) => l.watched).length;
+  const dueLectures = allLectures.filter((l) => l.scheduledDate && l.scheduledDate <= now).length;
+  const diff = watchedLectures - dueLectures;
+  const elapsed =
+    semester.endDate > semester.startDate
+      ? Math.max(
+          0,
+          Math.min(1, (now.getTime() - semester.startDate.getTime()) / (semester.endDate.getTime() - semester.startDate.getTime()))
+        )
+      : 0;
+  const showPace = isActive && totalLectures > 0;
+  const paceNote =
+    diff === 0
+      ? "On pace — watched everything scheduled so far."
+      : diff > 0
+        ? `${diff === 1 ? "One lecture" : `${diff} lectures`} ahead of schedule.`
+        : `${-diff === 1 ? "One lecture" : `${-diff} lectures`} behind schedule.`;
+
   return (
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
@@ -40,6 +62,55 @@ export default async function SemesterPage({
           ← All semesters
         </Link>
       </div>
+
+      {showPace && (
+        <div style={{ marginBottom: 34, maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginBottom: 9 }}>
+            <span
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-accent)",
+              }}
+            >
+              Pace
+            </span>
+            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+              {Math.round(elapsed * 100)}% of the term elapsed
+            </span>
+          </div>
+          <div style={{ position: "relative", height: 10, borderRadius: 99, background: "var(--color-neutral-300)", overflow: "visible" }}>
+            <div
+              style={{
+                width: `${totalLectures ? (watchedLectures / totalLectures) * 100 : 0}%`,
+                height: "100%",
+                background: diff < 0 ? "var(--color-accent-2)" : "var(--color-accent)",
+                borderRadius: 99,
+                transition: "width .7s cubic-bezier(.2,.8,.3,1), background .3s ease",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: -5,
+                bottom: -5,
+                insetInlineStart: `${totalLectures ? (dueLectures / totalLectures) * 100 : 0}%`,
+                width: 2,
+                background: "var(--color-text)",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginTop: 9 }}>
+            <span style={{ fontSize: 13, color: diff < 0 ? "var(--color-accent-2)" : "var(--color-neutral-700)" }}>
+              {paceNote}
+            </span>
+            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+              {watchedLectures}/{totalLectures} lectures · {dueLectures} scheduled to date
+            </span>
+          </div>
+        </div>
+      )}
 
       <div
         style={{
