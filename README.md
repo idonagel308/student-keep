@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Course Tracker
 
-## Getting Started
+A small app for keeping track of a semester's coursework: which lectures
+you've watched, what homework is due and when, and how far along each course
+is. Built with Next.js, Postgres (via Prisma), and Vercel Blob for file
+storage.
 
-First, run the development server:
+Data is organized as semesters → courses → lectures and homework. Each course
+tracks a lecture count so you can see watched/total progress at a glance, and
+homework items can have a due date, an assignment file, and your own
+answer (either typed text or an uploaded file). Everything is scoped to a
+signed-in user — there's no sharing between accounts.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Accounts are invite-gated: signup requires a shared invite code, so this
+isn't meant to be a public sign-up app. It's built for a small group of
+people you hand the code to yourself.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js (App Router, server actions)
+- PostgreSQL, accessed through Prisma
+- Vercel Blob for uploaded PDFs (assignment files, answer files)
+- Cookie-based sessions signed with a server-side secret, no external auth provider
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running it locally
 
-## Learn More
+You'll need Node.js and a Postgres database (a free [Neon](https://neon.tech)
+database works fine, which is also what production uses).
 
-To learn more about Next.js, take a look at the following resources:
+1. Install dependencies:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Copy `.env.example` to `.env` and fill in the values:
 
-## Deploy on Vercel
+   ```bash
+   cp .env.example .env
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   - `DATABASE_URL` / `DIRECT_URL` — your Postgres connection strings. If your
+     provider only gives you one connection string, use it for both.
+   - `BLOB_READ_WRITE_TOKEN` — from Vercel's Blob storage dashboard, needed for
+     file uploads. You can leave this blank if you don't need uploads to work.
+   - `SESSION_SECRET` — a random secret used to sign session cookies. Generate
+     one with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+     ```
+
+   - `SIGNUP_INVITE_CODE` — whatever code you want to require for signup. Pick
+     something and share it with whoever you want to be able to create an
+     account.
+
+3. Push the schema to your database:
+
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+4. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000), go to `/signup`, and
+   create an account using your invite code.
+
+## Deploying
+
+The app is set up to deploy on Vercel with a Neon Postgres database attached,
+but any host that can run a Next.js app and reach a Postgres database will
+work. A couple of things that aren't obvious if you're setting this up fresh:
+
+- Set the same four environment variables (`DATABASE_URL`, `DIRECT_URL`,
+  `BLOB_READ_WRITE_TOKEN`, `SESSION_SECRET`, `SIGNUP_INVITE_CODE`) in your
+  host's environment settings — they don't get picked up from `.env`
+  automatically in production.
+- The build script (`scripts/migrate-if-production.js`) runs pending
+  migrations automatically during a production build, but skips preview
+  builds so a preview deploy can't run migrations against your real database.
+- If you're on Vercel, make sure the project's Framework Preset is actually
+  set to Next.js in Settings → Build and Deployment — it can default to
+  "Other" depending on how the project was created, which will make every
+  route 404.
+
+## Notes on how it's built
+
+- Every page and server action checks the signed-in user server-side before
+  touching the database — there's no page that trusts a client-supplied user
+  ID.
+- Uploaded files (PDFs) are stored in Vercel Blob as private objects and
+  served through a route that checks the requesting user owns the file before
+  streaming it back, rather than relying on an unguessable URL.
+- Login and signup are rate-limited per account/IP using a database table
+  (not in-memory), since serverless functions don't share memory between
+  invocations.
