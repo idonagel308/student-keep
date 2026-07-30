@@ -59,7 +59,7 @@ export default async function SemesterPage({
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
         <Link href="/semesters" style={{ fontSize: 13 }}>
-          ← All semesters
+          <span className="back-arrow">←</span> All semesters
         </Link>
       </div>
 

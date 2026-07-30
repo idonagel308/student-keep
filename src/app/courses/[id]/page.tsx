@@ -70,7 +70,7 @@ export default async function CoursePage({
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
         <Link href={`/semesters/${course.semesterId}`} style={{ fontSize: 13 }}>
-          ← {course.semester.name}
+          <span className="back-arrow">←</span> {course.semester.name}
         </Link>
       </div>
 

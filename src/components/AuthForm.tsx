@@ -25,7 +25,7 @@ function PasswordToggle({
       aria-label={shown ? "Hide password" : "Show password"}
       style={{
         position: "absolute",
-        right: 4,
+        insetInlineEnd: 4,
         top: "50%",
         transform: "translateY(-50%)",
         display: "inline-flex",
@@ -103,7 +103,7 @@ export function AuthForm({ mode, action }: Props) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={inputClass}
-            style={{ paddingRight: 36 }}
+            style={{ paddingInlineEnd: 36 }}
           />
           <PasswordToggle shown={showPassword} onClick={() => setShowPassword((v) => !v)} />
         </div>
@@ -129,7 +129,7 @@ export function AuthForm({ mode, action }: Props) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={inputClass}
-              style={{ paddingRight: 36 }}
+              style={{ paddingInlineEnd: 36 }}
             />
             <PasswordToggle shown={showConfirm} onClick={() => setShowConfirm((v) => !v)} />
           </div>

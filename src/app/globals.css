@@ -548,3 +548,13 @@ textarea.input {
 .animate-in {
   animation: ct-in 0.3s ease both;
 }
+
+/* Back-link arrows are a literal "←" character, not an SVG — mirror it
+   under RTL rather than swapping to a different glyph, so bold/italic
+   Markdown-adjacent copy still just reads as plain text. */
+.back-arrow {
+  display: inline-block;
+}
+[dir="rtl"] .back-arrow {
+  transform: scaleX(-1);
+}
