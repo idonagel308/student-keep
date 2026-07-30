@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { inputClass, labelClass, btnPrimary } from "@/components/ui";
+import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import type { AuthState } from "@/app/actions/auth";
 
 type Props = {
@@ -10,12 +11,60 @@ type Props = {
   action: (state: AuthState, formData: FormData) => Promise<AuthState>;
 };
 
+function PasswordToggle({
+  shown,
+  onClick,
+}: {
+  shown: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={shown ? "Hide password" : "Show password"}
+      style={{
+        position: "absolute",
+        right: 4,
+        top: "50%",
+        transform: "translateY(-50%)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 28,
+        height: 28,
+        padding: 0,
+        border: 0,
+        background: "transparent",
+        color: "var(--color-neutral-600)",
+        cursor: "pointer",
+        borderRadius: "var(--radius-sm)",
+      }}
+    >
+      {shown ? <EyeOffIcon /> : <EyeIcon />}
+    </button>
+  );
+}
+
 export function AuthForm({ mode, action }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const isSignup = mode === "signup";
 
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const mismatch = isSignup && confirmPassword.length > 0 && confirmPassword !== password;
+
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        if (mismatch) e.preventDefault();
+      }}
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
       {isSignup && (
         <div className="field">
           <label className={labelClass} htmlFor="name">
@@ -43,21 +92,54 @@ export function AuthForm({ mode, action }: Props) {
         <label className={labelClass} htmlFor="password">
           Password
         </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={isSignup ? 8 : undefined}
-          autoComplete={isSignup ? "new-password" : "current-password"}
-          className={inputClass}
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={isSignup ? 8 : undefined}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass}
+            style={{ paddingRight: 36 }}
+          />
+          <PasswordToggle shown={showPassword} onClick={() => setShowPassword((v) => !v)} />
+        </div>
         {isSignup && (
           <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-neutral-600)" }}>
             At least 8 characters.
           </p>
         )}
       </div>
+
+      {isSignup && (
+        <div className="field">
+          <label className={labelClass} htmlFor="confirmPassword">
+            Confirm password
+          </label>
+          <div style={{ position: "relative" }}>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showConfirm ? "text" : "password"}
+              required
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputClass}
+              style={{ paddingRight: 36 }}
+            />
+            <PasswordToggle shown={showConfirm} onClick={() => setShowConfirm((v) => !v)} />
+          </div>
+          {mismatch && (
+            <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-accent-2)" }}>
+              Passwords do not match.
+            </p>
+          )}
+        </div>
+      )}
 
       {isSignup && (
         <div className="field">
@@ -74,7 +156,11 @@ export function AuthForm({ mode, action }: Props) {
         </div>
       )}
 
-      <button type="submit" disabled={pending} className={`${btnPrimary} btn-block`}>
+      <button
+        type="submit"
+        disabled={pending || mismatch}
+        className={`${btnPrimary} btn-block`}
+      >
         {pending
           ? isSignup
             ? "Creating account…"
