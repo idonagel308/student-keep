@@ -6,15 +6,15 @@ export async function UserMenu() {
   if (!user) return null;
 
   return (
-    <div className="ml-auto flex items-center gap-3">
-      <span className="hidden text-sm text-slate-500 sm:inline dark:text-slate-400">
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <span
+        className="hidden sm:inline"
+        style={{ fontSize: 13, color: "var(--color-neutral-600)" }}
+      >
         {user.name ?? user.email}
       </span>
       <form action={logout}>
-        <button
-          type="submit"
-          className="text-sm text-slate-500 hover:text-slate-900 hover:underline dark:text-slate-400 dark:hover:text-slate-100"
-        >
+        <button type="submit" className="btn btn-ghost" style={{ fontSize: 13 }}>
           Sign out
         </button>
       </form>

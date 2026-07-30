@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -18,26 +16,46 @@ export const metadata: Metadata = {
   description: "Track semesters, courses, lectures and homework.",
 };
 
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = window.localStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") {
+      document.documentElement.setAttribute("data-theme", stored);
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-          <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-2">
-            <a href="/" className="text-lg font-semibold tracking-tight">
-              📚 Course Tracker
-            </a>
+    <html lang="en" className={`${sourceSerif.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <header className="nav" style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
+          <a href="/" className="nav-brand">
+            Course Tracker
+          </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginInlineStart: "auto" }}>
+            <ThemeToggle />
             <UserMenu />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        <main
+          style={{
+            maxWidth: 1120,
+            margin: "0 auto",
+            width: "100%",
+            flex: 1,
+            padding: "0 22px 60px",
+          }}
+        >
           {children}
         </main>
       </body>
