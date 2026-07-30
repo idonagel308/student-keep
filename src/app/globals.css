@@ -504,7 +504,8 @@ textarea.input {
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: var(--space-4);
   background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
   overflow-y: auto;
@@ -518,6 +519,12 @@ textarea.input {
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
+  /* Keeps the dialog from ever being taller than the viewport so its own
+     scrollbar (not the clipped backdrop) is what handles long forms. */
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
+  max-height: calc(100vh - 2 * var(--space-8));
+  overflow-y: auto;
 }
 .dialog-title {
   font-family: var(--font-heading);
