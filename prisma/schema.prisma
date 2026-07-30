@@ -14,6 +14,10 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String?
+  /// Bumped to invalidate every outstanding session JWT at once (e.g. if a
+  /// token is ever suspected leaked) without needing a server-side session
+  /// store. Included in the JWT payload and checked on every request.
+  tokenVersion Int      @default(0) @map("token_version")
   createdAt    DateTime @default(now()) @map("created_at")
 
   semesters Semester[]
@@ -68,6 +72,20 @@ model Lecture {
   @@unique([courseId, number])
   @@index([courseId])
   @@map("lectures")
+}
+
+/// Serverless-safe rate limiting: counts failed attempts per key (e.g.
+/// "login:<email>" or "signup:<ip>") within a sliding window. A DB table is
+/// used instead of in-memory state because Vercel functions are stateless
+/// across invocations/instances, so a plain in-memory counter would reset
+/// on every cold start and not be shared across concurrent instances.
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  windowAt  DateTime @map("window_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("rate_limits")
 }
 
 model Homework {

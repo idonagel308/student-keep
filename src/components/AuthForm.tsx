@@ -1,45 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useActionState } from "react";
 import { inputClass, labelClass, btnPrimary } from "@/components/ui";
+import type { AuthState } from "@/app/actions/auth";
 
 type Props = {
   mode: "login" | "signup";
-  action: (formData: FormData) => Promise<unknown>;
+  action: (state: AuthState, formData: FormData) => Promise<AuthState>;
 };
 
 export function AuthForm({ mode, action }: Props) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [state, formAction, pending] = useActionState(action, undefined);
   const isSignup = mode === "signup";
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        startTransition(async () => {
-          try {
-            await action(fd);
-          } catch (err) {
-            // redirect() throws a control-flow error on success; let it through.
-            if (
-              err &&
-              typeof err === "object" &&
-              "digest" in err &&
-              String((err as { digest?: string }).digest).startsWith("NEXT_")
-            ) {
-              throw err;
-            }
-            setError(
-              err instanceof Error ? err.message : "Something went wrong."
-            );
-          }
-        });
-      }}
-      className="space-y-4"
-    >
+    <form action={formAction} className="space-y-4">
       {isSignup && (
         <div>
           <label className={labelClass} htmlFor="name">
@@ -95,9 +71,9 @@ export function AuthForm({ mode, action }: Props) {
         </div>
       )}
 
-      {error && (
+      {state?.error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
+          {state.error}
         </p>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/Modal";
-import { ActionForm } from "@/components/ActionForm";
+import { ActionForm, type ActionState } from "@/components/ActionForm";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
 
 type SemesterValues = {
@@ -18,7 +18,7 @@ export function SemesterForm({
   triggerClassName,
   title,
 }: {
-  action: (formData: FormData) => Promise<unknown>;
+  action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initial?: SemesterValues;
   triggerLabel: React.ReactNode;
   triggerClassName?: string;

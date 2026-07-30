@@ -20,11 +20,16 @@ export const getCurrentUser = cache(async () => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, tokenVersion: true },
   });
 
-  // Session referencing a deleted user.
-  return user ?? null;
+  // Session referencing a deleted user, or a token issued before the
+  // user's tokenVersion was last bumped (see session.ts) — both cases
+  // should behave like "not logged in".
+  if (!user || user.tokenVersion !== session.tokenVersion) return null;
+
+  const { tokenVersion: _tokenVersion, ...publicUser } = user;
+  return publicUser;
 });
 
 /** Current user, or redirect to login. Use in pages and actions. */
@@ -88,32 +93,32 @@ export async function assertOwnsHomework(homeworkId: string) {
 }
 
 /**
- * True if the current user owns the blob at this pathname.
+ * True if the current user owns the blob served at this pathname.
  *
- * Blob paths are `lectures/<lectureId>/...` (see uploadLectureSummary) and
- * `homework/<courseId>/...` (see createHomework) — note the second segment is
- * a *course* id for homework, not a homework id.
+ * Checks the *exact* stored URL against the DB rather than parsing the path
+ * for an owner id. This is deliberate: any check that infers ownership from
+ * path segments and then uses a *different* string (the raw path, which may
+ * contain "..", encoded separators, etc.) to actually fetch the blob is a
+ * check/use mismatch. Comparing the exact URL closes that gap entirely,
+ * since a manipulated path will simply never match a stored column value.
  */
 export async function canReadBlobPath(pathname: string) {
   const user = await getCurrentUser();
   if (!user) return false;
 
-  const [kind, ownerId] = pathname.split("/");
-  if (!kind || !ownerId) return false;
+  const url = `/api/files/${pathname}`;
 
-  if (kind === "lectures") {
-    const count = await prisma.lecture.count({
-      where: { id: ownerId, course: { semester: { userId: user.id } } },
-    });
-    return count > 0;
-  }
+  const [lectureCount, homeworkCount] = await Promise.all([
+    prisma.lecture.count({
+      where: { summaryFileUrl: url, course: { semester: { userId: user.id } } },
+    }),
+    prisma.homework.count({
+      where: {
+        OR: [{ assignmentFileUrl: url }, { answerFileUrl: url }],
+        course: { semester: { userId: user.id } },
+      },
+    }),
+  ]);
 
-  if (kind === "homework") {
-    const count = await prisma.course.count({
-      where: { id: ownerId, semester: { userId: user.id } },
-    });
-    return count > 0;
-  }
-
-  return false;
+  return lectureCount > 0 || homeworkCount > 0;
 }

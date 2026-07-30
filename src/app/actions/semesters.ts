@@ -4,37 +4,68 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsSemester, requireUser } from "@/lib/dal";
+import type { ActionState } from "@/components/ActionForm";
 
-export async function createSemester(formData: FormData) {
+function parseDate(raw: string, label: string): Date {
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`${label} is not a valid date.`);
+  }
+  return d;
+}
+
+export async function createSemester(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
-  const startDate = String(formData.get("startDate") ?? "");
-  const endDate = String(formData.get("endDate") ?? "");
+  const startDateRaw = String(formData.get("startDate") ?? "");
+  const endDateRaw = String(formData.get("endDate") ?? "");
 
-  if (!name || !startDate || !endDate) {
-    throw new Error("Name, start date and end date are required.");
+  if (!name || !startDateRaw || !endDateRaw) {
+    return { error: "Name, start date and end date are required." };
+  }
+
+  let startDate: Date, endDate: Date;
+  try {
+    startDate = parseDate(startDateRaw, "Start date");
+    endDate = parseDate(endDateRaw, "End date");
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid date." };
   }
 
   await prisma.semester.create({
     data: {
       userId: user.id,
       name,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate,
+      endDate,
     },
   });
 
   revalidatePath("/");
 }
 
-export async function updateSemester(formData: FormData) {
+export async function updateSemester(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const startDate = String(formData.get("startDate") ?? "");
-  const endDate = String(formData.get("endDate") ?? "");
+  const startDateRaw = String(formData.get("startDate") ?? "");
+  const endDateRaw = String(formData.get("endDate") ?? "");
 
-  if (!id || !name || !startDate || !endDate) {
-    throw new Error("All fields are required.");
+  if (!id || !name || !startDateRaw || !endDateRaw) {
+    return { error: "All fields are required." };
+  }
+
+  let startDate: Date, endDate: Date;
+  try {
+    startDate = parseDate(startDateRaw, "Start date");
+    endDate = parseDate(endDateRaw, "End date");
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid date." };
   }
 
   await assertOwnsSemester(id);
@@ -43,8 +74,8 @@ export async function updateSemester(formData: FormData) {
     where: { id },
     data: {
       name,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate,
+      endDate,
     },
   });
 

@@ -20,7 +20,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSession = Boolean(request.cookies.get("session")?.value);
+  const hasSession = Boolean(request.cookies.get("__Host-session")?.value);
   if (hasSession) return NextResponse.next();
 
   const loginUrl = new URL("/login", request.url);
@@ -28,6 +28,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Skip Next internals and static assets.
+  // Skip Next internals and static assets. Note this also skips any request
+  // path ending in an image extension, which in principle could include
+  // /api/files/*. That's fine here: uploaded files are validated as real
+  // PDFs by magic bytes (see lib/blob.ts) and never stored with an image
+  // extension, and canReadBlobPath's exact-URL DB check is the actual
+  // authorization boundary for that route regardless of what proxy does.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

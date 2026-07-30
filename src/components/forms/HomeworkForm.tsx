@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/Modal";
-import { ActionForm } from "@/components/ActionForm";
+import { ActionForm, type ActionState } from "@/components/ActionForm";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
 
 type HomeworkValues = {
@@ -22,7 +22,7 @@ export function HomeworkForm({
   triggerClassName,
   title,
 }: {
-  action: (formData: FormData) => Promise<unknown>;
+  action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   courseId: string;
   initial?: HomeworkValues;
   triggerLabel: React.ReactNode;

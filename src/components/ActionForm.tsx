@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useEffect, useRef } from "react";
+
+export type ActionState = { error: string } | undefined;
 
 type Props = {
-  action: (formData: FormData) => Promise<unknown>;
+  action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   onSuccess?: () => void;
   className?: string;
   children: (pending: boolean) => React.ReactNode;
   resetOnSuccess?: boolean;
 };
 
+/**
+ * Wraps useActionState so callers get pending state, error display, and an
+ * onSuccess callback without repeating the wiring. Actions passed in must
+ * return `{ error }` for expected failures rather than throwing — thrown
+ * Error messages are redacted by Next.js in production when they cross the
+ * server/client boundary (confirmed empirically against a production
+ * build), so returning a value is the only way validation messages like
+ * "Course name is required" survive to the user once deployed.
+ */
 export function ActionForm({
   action,
   onSuccess,
@@ -17,33 +28,24 @@ export function ActionForm({
   children,
   resetOnSuccess = true,
 }: Props) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [state, formAction, pending] = useActionState(action, undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    const justFinished = wasPending.current && !pending;
+    if (justFinished && !state?.error) {
+      if (resetOnSuccess) formRef.current?.reset();
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state, onSuccess, resetOnSuccess]);
 
   return (
-    <form
-      className={className}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const fd = new FormData(form);
-        startTransition(async () => {
-          try {
-            await action(fd);
-            setError(null);
-            if (resetOnSuccess) form.reset();
-            onSuccess?.();
-          } catch (err) {
-            setError(
-              err instanceof Error ? err.message : "Something went wrong."
-            );
-          }
-        });
-      }}
-    >
+    <form ref={formRef} action={formAction} className={className}>
       {children(pending)}
-      {error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+      {state?.error && (
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}
     </form>
   );

@@ -6,7 +6,16 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
-  const pathname = path.map(decodeURIComponent).join("/");
+  // Next.js already URL-decodes each catch-all segment; decoding again here
+  // would let a double-encoded segment (e.g. "%252e%252e") reintroduce
+  // characters like "/" after this function returns. Reject traversal and
+  // empty segments outright as defense in depth — canReadBlobPath's exact
+  // stored-URL match is the real authorization boundary, this just keeps
+  // obviously-malformed paths from ever reaching it or the blob store.
+  if (path.length === 0 || path.some((seg) => seg === "" || seg === "." || seg === "..")) {
+    return new Response("Not found", { status: 404 });
+  }
+  const pathname = path.join("/");
 
   // Same 404 for "not yours" and "doesn't exist" so paths can't be probed.
   if (!(await canReadBlobPath(pathname))) {

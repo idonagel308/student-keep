@@ -4,8 +4,26 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsCourse, assertOwnsSemester } from "@/lib/dal";
+import type { ActionState } from "@/components/ActionForm";
 
-export async function createCourse(formData: FormData) {
+// A real course won't have more lectures than this; the cap exists so a
+// bogus value can't allocate an unbounded array (Array.from({length: n}))
+// or write an unbounded number of rows in one request.
+const MAX_LECTURES = 500;
+
+function parseCredits(raw: string): number | null {
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error("Credits must be a non-negative number.");
+  }
+  return n;
+}
+
+export async function createCourse(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const semesterId = String(formData.get("semesterId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
@@ -13,20 +31,27 @@ export async function createCourse(formData: FormData) {
   const color = String(formData.get("color") ?? "").trim() || null;
 
   if (!semesterId || !name) {
-    throw new Error("Course name is required.");
+    return { error: "Course name is required." };
   }
-  if (!Number.isFinite(totalLectures) || totalLectures < 0) {
-    throw new Error("Total lectures must be a non-negative number.");
+  if (!Number.isFinite(totalLectures) || totalLectures < 0 || totalLectures > MAX_LECTURES) {
+    return { error: `Total lectures must be between 0 and ${MAX_LECTURES}.` };
+  }
+
+  let credits: number | null;
+  try {
+    credits = parseCredits(creditsRaw);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid credits." };
   }
 
   await assertOwnsSemester(semesterId);
 
-  const course = await prisma.course.create({
+  await prisma.course.create({
     data: {
       semesterId,
       name,
       totalLectures: Math.floor(totalLectures),
-      credits: creditsRaw ? Number(creditsRaw) : null,
+      credits,
       color,
       lectures: {
         create: Array.from({ length: Math.floor(totalLectures) }, (_, i) => ({
@@ -38,10 +63,12 @@ export async function createCourse(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath(`/semesters/${semesterId}`);
-  return course.id;
 }
 
-export async function updateCourse(formData: FormData) {
+export async function updateCourse(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
   const semesterId = String(formData.get("semesterId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -49,9 +76,16 @@ export async function updateCourse(formData: FormData) {
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
 
-  if (!id || !name) throw new Error("Course name is required.");
-  if (!Number.isFinite(totalLectures) || totalLectures < 0) {
-    throw new Error("Total lectures must be a non-negative number.");
+  if (!id || !name) return { error: "Course name is required." };
+  if (!Number.isFinite(totalLectures) || totalLectures < 0 || totalLectures > MAX_LECTURES) {
+    return { error: `Total lectures must be between 0 and ${MAX_LECTURES}.` };
+  }
+
+  let credits: number | null;
+  try {
+    credits = parseCredits(creditsRaw);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid credits." };
   }
 
   await assertOwnsCourse(id);
@@ -82,7 +116,7 @@ export async function updateCourse(formData: FormData) {
     data: {
       name,
       totalLectures: target,
-      credits: creditsRaw ? Number(creditsRaw) : null,
+      credits,
       color,
     },
   });
