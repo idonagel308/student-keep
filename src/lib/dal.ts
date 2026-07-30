@@ -20,7 +20,14 @@ export const getCurrentUser = cache(async () => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, name: true, tokenVersion: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      tokenVersion: true,
+      degreeName: true,
+      creditsRequired: true,
+    },
   });
 
   // Session referencing a deleted user, or a token issued before the

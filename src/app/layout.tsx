@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Source_Serif_4, Frank_Ruhl_Libre } from "next/font/google";
 import "./globals.css";
-import { UserMenu } from "@/components/UserMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SettingsTrigger } from "@/components/SettingsTrigger";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 
@@ -47,7 +47,12 @@ export default async function RootLayout({
   const dir = lang === "he" ? "rtl" : "ltr";
 
   return (
-    <html lang={lang} dir={dir} className={`${sourceSerif.variable} ${frankRuhlLibre.variable}`}>
+    <html
+      lang={lang}
+      dir={dir}
+      className={`${sourceSerif.variable} ${frankRuhlLibre.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
@@ -56,9 +61,9 @@ export default async function RootLayout({
           <Link href="/" className="nav-brand">
             {t(lang, "brand")}
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginInlineStart: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginInlineStart: "auto" }}>
             <ThemeToggle lang={lang} />
-            <UserMenu lang={lang} />
+            <SettingsTrigger lang={lang} />
           </div>
         </header>
         <main
