@@ -7,9 +7,9 @@ import { CourseForm } from "@/components/forms/CourseForm";
 import { SemesterForm } from "@/components/forms/SemesterForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
+import { EditIcon, DeleteIcon, PlusIcon } from "@/components/icons";
 import { courseProgress } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
-import { cardClass, btnSecondary } from "@/components/ui";
 import { requireUser } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
@@ -34,29 +34,48 @@ export default async function SemesterPage({
   if (!semester) notFound();
 
   return (
-    <div>
-      <div className="mb-2">
-        <Link
-          href="/"
-          className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-        >
+    <div className="animate-in" style={{ paddingTop: 48 }}>
+      <div style={{ marginBottom: 8 }}>
+        <Link href="/" style={{ fontSize: 13 }}>
           ← All semesters
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 14,
+          marginBottom: 34,
+        }}
+      >
         <div>
-          <h1 className="text-2xl font-bold">{semester.name}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--color-accent)",
+              marginBottom: 8,
+            }}
+          >
+            Semester
+          </div>
+          <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 6px" }}>
+            {semester.name}
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
             {formatDate(semester.startDate)} – {formatDate(semester.endDate)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SemesterForm
             action={updateSemester}
             title="Edit semester"
             triggerLabel="Edit"
-            triggerClassName={btnSecondary}
+            triggerClassName="btn btn-secondary"
             initial={{
               id: semester.id,
               name: semester.name,
@@ -68,44 +87,66 @@ export default async function SemesterPage({
             action={deleteSemester}
             hidden={{ id: semester.id }}
             confirmMessage="Delete this semester and all its courses? This cannot be undone."
-          />
-          <CourseForm
-            action={createCourse}
-            semesterId={semester.id}
-            title="Add course"
-            triggerLabel="+ Add course"
+            className="btn btn-ghost-danger"
           />
         </div>
       </div>
 
-      {semester.courses.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700">
-          No courses yet. Add your first course.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {semester.courses.map((c) => {
+      {semester.courses.length === 0 && (
+        <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
+          No courses yet. Add your first one below.
+        </p>
+      )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
+          gap: 22,
+        }}
+      >
+        {semester.courses.map((c) => {
             const p = courseProgress(c);
             return (
-              <div key={c.id} className={cardClass + " relative"}>
-                <Link href={`/courses/${c.id}`} className="block">
-                  <div className="flex items-center gap-2">
+              <div key={c.id} className="card elev-sm card-link" style={{ padding: 20, gap: 16 }}>
+                <Link href={`/courses/${c.id}`} style={{ display: "block" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 5,
+                    }}
+                  >
                     {c.color && (
                       <span
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: c.color }}
+                        style={{
+                          height: 10,
+                          width: 10,
+                          flexShrink: 0,
+                          borderRadius: 999,
+                          backgroundColor: c.color,
+                        }}
                       />
                     )}
-                    <h2 className="text-lg font-semibold">{c.name}</h2>
+                    <span style={{ fontWeight: 600, fontSize: 19 }}>{c.name}</span>
                   </div>
                   {c.credits != null && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "0 0 12px" }}>
                       {c.credits} credits
                     </p>
                   )}
-                  <div className="mt-3 space-y-2">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <div>
-                      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: 12,
+                          color: "var(--color-neutral-600)",
+                          marginBottom: 6,
+                          fontFeatureSettings: "'tnum' 1",
+                        }}
+                      >
                         <span>Lectures</span>
                         <span>
                           {p.watched}/{p.totalLectures}
@@ -114,22 +155,31 @@ export default async function SemesterPage({
                       <ProgressBar
                         value={p.watched}
                         total={p.totalLectures}
-                        className="mt-1"
                         color={c.color ?? undefined}
                       />
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <p style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: 0 }}>
                       Homework: {p.doneHw}/{p.totalHw} done
                     </p>
                   </div>
                 </Link>
-                <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    justifyContent: "flex-end",
+                    paddingTop: 12,
+                    borderTop: "1px solid var(--color-divider)",
+                  }}
+                >
                   <CourseForm
                     action={updateCourse}
                     semesterId={semester.id}
                     title="Edit course"
-                    triggerLabel="Edit"
-                    triggerClassName="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                    triggerLabel={<EditIcon />}
+                    triggerClassName="btn btn-icon btn-ghost"
+                    triggerAriaLabel={`Edit ${c.name}`}
                     initial={{
                       id: c.id,
                       name: c.name,
@@ -141,16 +191,33 @@ export default async function SemesterPage({
                   <DeleteButton
                     action={deleteCourse}
                     hidden={{ id: c.id, semesterId: semester.id }}
-                    label="Delete"
-                    className="text-sm text-red-500 hover:text-red-700"
+                    label={<DeleteIcon />}
+                    ariaLabel={`Delete ${c.name}`}
+                    className="btn btn-icon btn-ghost-danger"
                     confirmMessage="Delete this course and all its lectures and homework?"
                   />
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+        })}
+        <CourseForm
+          action={createCourse}
+          semesterId={semester.id}
+          title="Add course"
+          triggerClassName="card-dashed"
+          triggerLabel={
+            <>
+              <PlusIcon />
+              <span style={{ display: "block", fontWeight: 600, fontSize: 17, marginTop: 8 }}>
+                Add course
+              </span>
+              <span style={{ display: "block", fontSize: 12, color: "var(--color-neutral-600)" }}>
+                Track a new course this semester
+              </span>
+            </>
+          }
+        />
+      </div>
     </div>
   );
 }

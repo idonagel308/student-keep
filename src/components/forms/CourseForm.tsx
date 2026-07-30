@@ -20,6 +20,7 @@ export function CourseForm({
   initial,
   triggerLabel,
   triggerClassName,
+  triggerAriaLabel,
   title,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
@@ -27,6 +28,7 @@ export function CourseForm({
   initial?: CourseValues;
   triggerLabel: React.ReactNode;
   triggerClassName?: string;
+  triggerAriaLabel?: string;
   title: string;
 }) {
   return (
@@ -37,6 +39,7 @@ export function CourseForm({
           type="button"
           onClick={open}
           className={triggerClassName ?? btnPrimary}
+          aria-label={triggerAriaLabel}
         >
           {triggerLabel}
         </button>
@@ -48,7 +51,7 @@ export function CourseForm({
             <div className="space-y-4">
               <input type="hidden" name="semesterId" value={semesterId} />
               {initial && <input type="hidden" name="id" value={initial.id} />}
-              <div>
+              <div className="field">
                 <label className={labelClass}>Course name</label>
                 <input
                   name="name"
@@ -59,7 +62,7 @@ export function CourseForm({
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="field">
                   <label className={labelClass}>Total lectures</label>
                   <input
                     type="number"
@@ -70,7 +73,7 @@ export function CourseForm({
                     className={inputClass}
                   />
                 </div>
-                <div>
+                <div className="field">
                   <label className={labelClass}>Credits (optional)</label>
                   <input
                     type="number"
@@ -82,7 +85,7 @@ export function CourseForm({
                   />
                 </div>
               </div>
-              <div>
+              <div className="field">
                 <label className={labelClass}>Color tag (optional)</label>
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1 text-sm">
@@ -104,14 +107,14 @@ export function CourseForm({
                         className="peer sr-only"
                       />
                       <span
-                        className="block h-6 w-6 rounded-full ring-offset-2 peer-checked:ring-2 peer-checked:ring-slate-500 dark:ring-offset-slate-900"
+                        className="block h-6 w-6 rounded-full ring-offset-2 ring-offset-[var(--color-surface)] peer-checked:ring-2 peer-checked:ring-[var(--color-accent)]"
                         style={{ backgroundColor: c }}
                       />
                     </label>
                   ))}
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="dialog-actions">
                 <button type="button" onClick={close} className={btnSecondary}>
                   Cancel
                 </button>

@@ -15,9 +15,9 @@ export function AuthForm({ mode, action }: Props) {
   const isSignup = mode === "signup";
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {isSignup && (
-        <div>
+        <div className="field">
           <label className={labelClass} htmlFor="name">
             Name (optional)
           </label>
@@ -25,7 +25,7 @@ export function AuthForm({ mode, action }: Props) {
         </div>
       )}
 
-      <div>
+      <div className="field">
         <label className={labelClass} htmlFor="email">
           Email
         </label>
@@ -39,7 +39,7 @@ export function AuthForm({ mode, action }: Props) {
         />
       </div>
 
-      <div>
+      <div className="field">
         <label className={labelClass} htmlFor="password">
           Password
         </label>
@@ -53,31 +53,28 @@ export function AuthForm({ mode, action }: Props) {
           className={inputClass}
         />
         {isSignup && (
-          <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>
+          <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-neutral-600)" }}>
+            At least 8 characters.
+          </p>
         )}
       </div>
 
       {isSignup && (
-        <div>
+        <div className="field">
           <label className={labelClass} htmlFor="inviteCode">
             Invite code
           </label>
-          <input
-            id="inviteCode"
-            name="inviteCode"
-            required
-            className={inputClass}
-          />
+          <input id="inviteCode" name="inviteCode" required className={inputClass} />
         </div>
       )}
 
       {state?.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        <div style={{ fontSize: "12.5px", color: "var(--color-accent-2)" }}>
           {state.error}
-        </p>
+        </div>
       )}
 
-      <button type="submit" disabled={pending} className={`${btnPrimary} w-full`}>
+      <button type="submit" disabled={pending} className={`${btnPrimary} btn-block`}>
         {pending
           ? isSignup
             ? "Creating account…"
@@ -87,20 +84,14 @@ export function AuthForm({ mode, action }: Props) {
             : "Sign in"}
       </button>
 
-      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+      <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-neutral-600)", margin: 0 }}>
         {isSignup ? (
           <>
-            Already have an account?{" "}
-            <Link href="/login" className="text-indigo-600 hover:underline dark:text-indigo-400">
-              Sign in
-            </Link>
+            Already have an account? <Link href="/login">Sign in</Link>
           </>
         ) : (
           <>
-            Have an invite code?{" "}
-            <Link href="/signup" className="text-indigo-600 hover:underline dark:text-indigo-400">
-              Create an account
-            </Link>
+            Have an invite code? <Link href="/signup">Create an account</Link>
           </>
         )}
       </p>

@@ -20,6 +20,7 @@ export function HomeworkForm({
   initial,
   triggerLabel,
   triggerClassName,
+  triggerAriaLabel,
   title,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
@@ -27,6 +28,7 @@ export function HomeworkForm({
   initial?: HomeworkValues;
   triggerLabel: React.ReactNode;
   triggerClassName?: string;
+  triggerAriaLabel?: string;
   title: string;
 }) {
   return (
@@ -37,6 +39,7 @@ export function HomeworkForm({
           type="button"
           onClick={open}
           className={triggerClassName ?? btnPrimary}
+          aria-label={triggerAriaLabel}
         >
           {triggerLabel}
         </button>
@@ -49,7 +52,7 @@ export function HomeworkForm({
               <input type="hidden" name="courseId" value={courseId} />
               {initial && <input type="hidden" name="id" value={initial.id} />}
 
-              <div>
+              <div className="field">
                 <label className={labelClass}>Assignment name</label>
                 <input
                   name="name"
@@ -60,7 +63,7 @@ export function HomeworkForm({
                 />
               </div>
 
-              <div>
+              <div className="field">
                 <label className={labelClass}>Details / task description</label>
                 <textarea
                   name="details"
@@ -71,7 +74,7 @@ export function HomeworkForm({
                 />
               </div>
 
-              <div>
+              <div className="field">
                 <label className={labelClass}>Due date</label>
                 <input
                   type="date"
@@ -81,7 +84,7 @@ export function HomeworkForm({
                 />
               </div>
 
-              <div>
+              <div className="field">
                 <label className={labelClass}>
                   Assignment PDF (instructions, optional)
                 </label>
@@ -92,14 +95,20 @@ export function HomeworkForm({
                   className="text-sm"
                 />
                 {initial?.assignmentFileName && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p
+                    className="mt-1 text-xs"
+                    style={{ color: "var(--color-neutral-600)" }}
+                  >
                     Current: {initial.assignmentFileName} — choose a file to
                     replace.
                   </p>
                 )}
               </div>
 
-              <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+              <div
+                className="rounded-lg p-3"
+                style={{ border: "1px solid var(--color-divider)" }}
+              >
                 <p className="mb-2 text-sm font-medium">My answer</p>
                 <label className={labelClass}>Typed answer</label>
                 <textarea
@@ -109,7 +118,7 @@ export function HomeworkForm({
                   placeholder="Type your answer here (optional)"
                   className={inputClass}
                 />
-                <div className="mt-3">
+                <div className="mt-3 field">
                   <label className={labelClass}>Or upload answer PDF</label>
                   <input
                     type="file"
@@ -118,7 +127,10 @@ export function HomeworkForm({
                     className="text-sm"
                   />
                   {initial?.answerFileName && (
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p
+                      className="mt-1 text-xs"
+                      style={{ color: "var(--color-neutral-600)" }}
+                    >
                       Current: {initial.answerFileName} — choose a file to
                       replace.
                     </p>
@@ -126,7 +138,7 @@ export function HomeworkForm({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="dialog-actions">
                 <button type="button" onClick={close} className={btnSecondary}>
                   Cancel
                 </button>

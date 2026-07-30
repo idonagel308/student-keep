@@ -16,12 +16,14 @@ export function SemesterForm({
   initial,
   triggerLabel,
   triggerClassName,
+  triggerAriaLabel,
   title,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initial?: SemesterValues;
   triggerLabel: React.ReactNode;
   triggerClassName?: string;
+  triggerAriaLabel?: string;
   title: string;
 }) {
   return (
@@ -32,6 +34,7 @@ export function SemesterForm({
           type="button"
           onClick={open}
           className={triggerClassName ?? btnPrimary}
+          aria-label={triggerAriaLabel}
         >
           {triggerLabel}
         </button>
@@ -42,7 +45,7 @@ export function SemesterForm({
           {(pending) => (
             <div className="space-y-4">
               {initial && <input type="hidden" name="id" value={initial.id} />}
-              <div>
+              <div className="field">
                 <label className={labelClass}>Semester name</label>
                 <input
                   name="name"
@@ -53,7 +56,7 @@ export function SemesterForm({
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="field">
                   <label className={labelClass}>Start date</label>
                   <input
                     type="date"
@@ -63,7 +66,7 @@ export function SemesterForm({
                     className={inputClass}
                   />
                 </div>
-                <div>
+                <div className="field">
                   <label className={labelClass}>End date</label>
                   <input
                     type="date"
@@ -74,7 +77,7 @@ export function SemesterForm({
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="dialog-actions">
                 <button
                   type="button"
                   onClick={close}

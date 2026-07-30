@@ -9,8 +9,8 @@ import { LectureRow } from "@/components/LectureRow";
 import { CourseForm } from "@/components/forms/CourseForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
+import { ProgressRing } from "@/components/ProgressRing";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
-import { btnSecondary } from "@/components/ui";
 import { requireUser } from "@/lib/dal";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ export default async function CoursePage({
 
   const watched = course.lectures.filter((l) => l.watched).length;
   const totalLectures = course.lectures.length;
+  const lecturePct = totalLectures > 0 ? Math.round((watched / totalLectures) * 100) : 0;
 
   const doneHw = course.homework.filter((h) => h.completed).length;
   const totalHw = course.homework.length;
@@ -57,47 +58,45 @@ export default async function CoursePage({
     )
     .slice(0, 5);
 
-  const dueStyles: Record<string, string> = {
-    overdue: "text-red-600 dark:text-red-400",
-    today: "text-amber-600 dark:text-amber-400",
-    upcoming: "text-slate-600 dark:text-slate-300",
+  const dueColors: Record<string, string> = {
+    overdue: "var(--color-accent-2)",
+    today: "var(--color-accent-700)",
+    upcoming: "var(--color-neutral-600)",
   };
 
   return (
-    <div>
-      <div className="mb-2">
-        <Link
-          href={`/semesters/${course.semesterId}`}
-          className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-        >
+    <div className="animate-in" style={{ paddingTop: 48 }}>
+      <div style={{ marginBottom: 8 }}>
+        <Link href={`/semesters/${course.semesterId}`} style={{ fontSize: 13 }}>
           ← {course.semester.name}
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {course.color && (
-            <span
-              className="h-4 w-4 rounded-full"
-              style={{ backgroundColor: course.color }}
-            />
+      <div style={{ maxWidth: 720 }}>
+        {course.color && (
+          <div
+            style={{
+              height: 4,
+              width: 44,
+              borderRadius: 99,
+              background: course.color,
+              marginBottom: 10,
+            }}
+          />
+        )}
+        <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 8px" }}>{course.name}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {course.credits != null && (
+            <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
+              {course.credits} credits
+            </p>
           )}
-          <div>
-            <h1 className="text-2xl font-bold">{course.name}</h1>
-            {course.credits != null && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {course.credits} credits
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
           <CourseForm
             action={updateCourse}
             semesterId={course.semesterId}
             title="Edit course"
             triggerLabel="Edit"
-            triggerClassName={btnSecondary}
+            triggerClassName="btn btn-ghost"
             initial={{
               id: course.id,
               name: course.name,
@@ -109,32 +108,39 @@ export default async function CoursePage({
           <DeleteButton
             action={deleteCourse}
             hidden={{ id: course.id, semesterId: course.semesterId }}
+            className="btn btn-ghost-danger"
             confirmMessage="Delete this course and all its lectures and homework?"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Lectures */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Lectures</h2>
-            <span className="text-sm text-slate-500 dark:text-slate-400">
-              {watched} / {totalLectures} watched
-            </span>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 40,
+          marginTop: 42,
+        }}
+      >
+        <section>
+          <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 26 }}>
+            <ProgressRing pct={lecturePct} size={72} stroke={5} color={course.color ?? undefined} labelSize={16} />
+            <div>
+              <h2 style={{ fontSize: 22, margin: "0 0 4px", fontFeatureSettings: "'tnum' 1" }}>
+                {watched} / {totalLectures} lectures watched
+              </h2>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--color-neutral-600)" }}>
+                Track what you&apos;ve caught up on
+              </p>
+            </div>
           </div>
-          <ProgressBar
-            value={watched}
-            total={totalLectures}
-            color={course.color ?? undefined}
-            className="mb-4"
-          />
+
           {course.lectures.length === 0 ? (
-            <p className="text-sm text-slate-500">
+            <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>
               No lectures. Edit the course to set a lecture count.
             </p>
           ) : (
-            <ul>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {course.lectures.map((l) => (
                 <LectureRow key={l.id} lecture={l} />
               ))}
@@ -142,10 +148,19 @@ export default async function CoursePage({
           )}
         </section>
 
-        {/* Homework */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">Homework</h2>
+        <section>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 12,
+            }}
+          >
+            <h2 style={{ fontSize: 22, margin: 0, fontFeatureSettings: "'tnum' 1" }}>
+              {doneHw} / {totalHw} homework done
+            </h2>
             <HomeworkForm
               action={createHomework}
               courseId={course.id}
@@ -153,28 +168,35 @@ export default async function CoursePage({
               triggerLabel="+ Add"
             />
           </div>
-          <div className="mb-2 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <span>
-              {doneHw} / {totalHw} completed
-            </span>
-          </div>
           <ProgressBar value={doneHw} total={totalHw} className="mb-4" />
 
           {upcoming.length > 0 && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/30">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+            <div
+              className="card"
+              style={{ marginTop: 14, marginBottom: 18, gap: 8, padding: 14 }}
+            >
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--color-accent)",
+                  margin: 0,
+                }}
+              >
                 Upcoming due dates
               </p>
-              <ul className="space-y-1">
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                 {upcoming.map((h) => (
                   <li
                     key={h.id}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}
                   >
-                    <span className="truncate">{h.name}</span>
-                    <span
-                      className={`shrink-0 text-xs ${dueStyles[dueStatus(h.dueDate!)]}`}
-                    >
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {h.name}
+                    </span>
+                    <span style={{ flexShrink: 0, fontSize: 11, color: dueColors[dueStatus(h.dueDate!)] }}>
                       {formatDate(h.dueDate)} · {dueLabel(h.dueDate!)}
                     </span>
                   </li>
@@ -184,9 +206,9 @@ export default async function CoursePage({
           )}
 
           {course.homework.length === 0 ? (
-            <p className="text-sm text-slate-500">No homework yet.</p>
+            <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>No homework yet.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               {homeworkSorted.map((h) => (
                 <HomeworkItem key={h.id} hw={h} />
               ))}
