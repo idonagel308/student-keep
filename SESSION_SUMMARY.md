@@ -1,116 +1,115 @@
-# Student Keep — Session Summary (2026-07-30)
+# Student Keep — Session Summary (2026-07-31)
 
 Read this at the start of tomorrow's session to pick up where we left off.
 
-## What shipped today
+## Where things stand: R2 migration is LIVE and confirmed working
 
-**Full Broadsheet UI overhaul** (design imported via `DesignSync` from the
-Claude Design project) — reskinned every existing page (login, signup,
-semesters list, semester view, course view) to the newsprint/serif design,
-preserving every server action's `formData` field names exactly. Renamed
-the app-facing brand from "Course Tracker" to **Student Keep** to match the
-deployed domain. Added a show/hide password toggle and a confirm-password
-field on signup.
+Cloudflare R2 is now the active file storage backend in **production**, replacing
+Vercel Blob. This was built and cut over today, following the plan in
+`R2_MIGRATION.md` (which is now historical — describes the plan, not the current
+state).
 
-**Full feature build**, following `FULL_FEATURE_BUILD_PLAN.md` (11 phases,
-all built and verified against a real production build, not just dev mode):
-- **Schema**: `Lecture.scheduledDate` (auto-assigned weekly from the
-  semester start date when a course is created, continues the cadence when
-  lectures are added, manually overridable per lecture), `Course.examScore`
-  (kept in its own action, `setCourseGrade`, separate from `updateCourse` —
-  editing a course's other details can no longer silently wipe its grade),
-  `User.degreeName` / `User.creditsRequired`.
-- **Full English/Hebrew i18n** — cookie-based (not localStorage), so pages
-  render the correct language on the very first server response instead of
-  flashing English. RTL layout, Frank Ruhl Libre font swap for Hebrew.
-  Every string in every page/component is translated.
-- **Settings panel** (gear icon in header): appearance, language, degree
-  name/credits, account info, log out, and — added later today — **account
-  deletion** behind a translated warning + confirm dialog. Cascades to every
-  semester/course/lecture/homework row; no undo.
-- **3-tab navigation**: This week / Degree / Semesters. `/` is now the This
-  Week dashboard; the old semesters list moved to `/semesters`.
-- **This Week page**: due-homework spans every semester (including
-  overdue), lectures shown are scoped to whichever semester is currently
-  active.
-- **Degree page**: credits-weighted GPA (ungraded and zero-credit courses
-  excluded from the average, pass threshold is 60), per-semester breakdown,
-  searchable graded-courses list.
-- **Pace indicator** (semester page): ahead/behind/on-pace vs. lectures
-  actually scheduled to date. **Semester status grouping**: In progress /
-  Planned / Completed sections on the semesters list.
+### What was built
+- **`src/lib/blob.ts`** now supports both Vercel Blob and R2 behind the exact
+  same `uploadPdf`/`deleteBlob` signatures. The backend is chosen automatically
+  at runtime: if all four `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` /
+  `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` env vars are present, it uses R2
+  (via `@aws-sdk/client-s3`, S3-compatible); otherwise it falls back to Vercel
+  Blob. No other caller (`lectures.ts`, `homework.ts`) changed.
+- **`src/app/api/files/[...path]/route.ts`** now reads through
+  `getStoredPdf()` (backend-agnostic) instead of calling `@vercel/blob`'s
+  `get()` directly. The `canReadBlobPath()` ownership check is untouched.
+- **`scripts/migrate-blob-to-r2.js`** — one-time copy script, Blob → R2, same
+  storage keys, `--dry-run` supported. Already run once today (see below).
+- **`src/lib/blob.test.ts`** + **`vitest.config.ts`** — new test suite
+  (`npm test`), 17 tests: input validation, path-traversal safety, provider
+  auto-detection, and (when R2 creds are present) a live upload → read →
+  delete round trip against the real bucket.
+- Committed and pushed to `main` (commit `095c74e`).
 
-**Real bugs caught via live testing at each phase** (not just code review),
-fixed before merging:
-- Editing a course would have silently wiped its grade (fixed by splitting
-  grade-setting into its own action).
-- A stale `.nav-brand { margin-right: auto }` broke the new header layout
-  once nav tabs were added.
-- A pre-existing hydration-mismatch console warning from the theme
-  blocking script — switched to `next/script` (`strategy="beforeInteractive"`),
-  the documented Next.js pattern for this exact case.
-- `NavTabs` mixed the `textDecoration` shorthand with `textDecorationColor`/
-  `Thickness` longhand in the same style object — a real React warning, not
-  cosmetic.
-- Lecture titles fell back to hardcoded English ("Lecture N") even in
-  Hebrew mode — now routes through the dictionary.
+### What was actually done in production today
+1. User created the Cloudflare R2 bucket (`student-keep-files`) and API token.
+2. Credentials were briefly pasted into `.env.example` (the **tracked**
+   template file) instead of `.env` (gitignored) — caught and fixed before
+   anything was committed/pushed. **Nothing leaked.** Lesson: real secrets go
+   in `.env` only, never `.env.example`.
+3. `node scripts/migrate-blob-to-r2.js --dry-run` then for real — copied the
+   one pre-existing file from Blob to R2.
+   - **Bug found and fixed during this run**: the script's first version used
+     a plain `fetch(item.url)` to download from Blob, which 403'd because
+     blobs are uploaded `access: "private"`. Fixed to use `@vercel/blob`'s
+     `get()` (same pattern the app's own download route uses), which
+     authenticates with `BLOB_READ_WRITE_TOKEN`.
+4. `npm test` run locally with real R2 creds in `.env` — all 17 tests passed,
+   including the live round trip.
+5. Same 4 R2 env vars added to Vercel (Production scope) and the project was
+   redeployed.
+6. **Verified in the live browser session** (logged in as the real account):
+   uploaded a real homework assignment PDF ("maman 11", 2 pages, Hebrew) to
+   the "calclus 2" course through the actual UI. Confirmed via direct R2
+   bucket listing (`ListObjectsV2Command`) that the object landed at
+   `homework/cms7suf3r000004i50imlipit/4b7b42bf8b6c5921-____11.pdf`
+   (155,119 bytes). Then opened `/api/files/homework/.../____11.pdf` on the
+   live site and confirmed the real PDF renders correctly — full production
+   round trip confirmed working.
+7. User reported "it didn't work the first time" — network logs showed a
+   cluster of transient 503s on RSC fetches (`/courses/...`, `/semesters`,
+   `/degree`, `/`) right around the redeploy window, consistent with normal
+   Vercel rollout instability, not a code defect. A fresh reload afterward
+   returned clean 200s and the upload that had seemed to fail was actually
+   present correctly in both R2 and the DB. Worth a quick recheck tomorrow if
+   any other save-during-that-window is suspected to have been lost, but
+   nothing indicates it was.
 
-**Deployed**: merged to `main`, pushed, verified live — `/degree` now
-redirects to login instead of 404ing (confirms the new routes deployed),
-security headers unchanged, no manual Vercel Promote needed this time.
+### Known objects in the R2 bucket right now
+- `homework/cms6sfrjw0002r4q0bx1ge6w2/real2-....pdf` (9 bytes) — leftover
+  test data from earlier development, migrated from Blob. Its homework row
+  doesn't belong to the current account (404s via `canReadBlobPath`) —
+  harmless orphan, safe to ignore or delete later.
+- `homework/cms7suf3r000004i50imlipit/4b7b42bf8b6c5921-____11.pdf`
+  (155,119 bytes) — the real "maman 11" assignment PDF, uploaded today,
+  confirmed working.
 
-**Current live invite code:** `p_ehS3aZa-6R`
+## Recommended next-session opening move / remaining cleanup
 
-## Known accounts in the DB right now
+The migration is functionally done and verified. What's left is just cleanup,
+not risk:
 
-- All accounts were deleted today at your request (both `ido@example.com`
-  and `idonagel@gmail.com`, plus all their data) before pushing.
-- As of the end of this session, `idonagel@gmail.com` exists again — you
-  must have signed back up on the live site after the wipe. Treat it as
-  your real account unless told otherwise.
+1. **Delete the old Vercel Blob store** (Vercel dashboard → Storage) now that
+   R2 is confirmed working in production. Not urgent, but there's no reason
+   to keep paying into two storage products.
+2. Optionally remove `BLOB_READ_WRITE_TOKEN` from Vercel env vars once the
+   Blob store is deleted — `blob.ts`'s fallback path would then be dead code
+   for this deployment (harmless to leave the code in, since local dev / a
+   future rollback could still use it).
+3. Optionally clean up the orphaned 9-byte test object in R2
+   (`homework/cms6sfrjw.../real2-...pdf`) — cosmetic only.
+4. No other open items from prior sessions — `FULL_FEATURE_BUILD_PLAN.md` and
+   now `R2_MIGRATION.md` are both fully executed.
 
-## Decisions needed before next implementation
-
-- **R2_MIGRATION.md** (untracked, not yet committed) — a plan to move file
-  storage from Vercel Blob to Cloudflare R2 (better free-tier fit for a
-  mostly-PDF, read-heavy bucket). **Nothing in the app has been touched by
-  this yet — it's a proposal only.** Before implementing it: confirm this
-  is still wanted, decide whether to do the one-time data migration for any
-  files already uploaded under the current account, and confirm the R2
-  credentials/bucket exist. The doc itself lists exactly what would change
-  (`src/lib/blob.ts`, the `/api/files/[...path]` route, env vars) and — just
-  as importantly — what should *not* be introduced (no new upload route, no
-  new table, no presigned-URL scheme replacing the existing ownership
-  check). Read the file in full before starting; don't re-derive the plan
-  from scratch.
-
-## Known quirks / things to remember
+## Known quirks / things to remember (carried over, still true)
 
 - Git remote: `https://github.com/idonagel308/student-keep.git`, branch
   `main`. No `gh` CLI installed locally — commits use
-  `git -c user.name=... -c user.email=...` matching the existing repo
-  author (`idonagel308 <idonagel@gmail.com>`) since no global git identity
-  is configured on this machine.
-- Local `.env` holds real secrets (DB, Blob, session secret, invite code) —
-  gitignored correctly, never committed. It points at the **same Neon DB**
-  used by the live production site — local testing writes/deletes real
-  production data, not a separate dev database.
+  `git -c user.name=... -c user.email=...` matching the existing repo author
+  (`idonagel308 <idonagel@gmail.com>`).
+- Local `.env` holds real secrets (DB, Blob token, **R2 credentials**,
+  session secret, invite code) — gitignored correctly. **`.env.example` must
+  only ever contain placeholders** — it's the tracked template.
+- It points at the same Neon DB used by the live production site — local
+  testing writes/deletes real production data, not a separate dev database.
 - Form actions across the app follow a `useActionState`-based pattern
-  (`{error}` return values, not throws) for anything wired through
-  `ActionForm` or `AuthForm` — keep this pattern for any new forms.
+  (`{error}` return values, not throws) — keep this pattern for new forms.
 - i18n pattern: every server-component page calls `getLang()` + `t(lang,
-  key)`; client components receive `lang` as a prop threaded down from
-  their server-component parent. New dictionary keys go in
-  `src/lib/i18n/dictionary.ts` (both `en` and `he` — TypeScript won't catch
-  a missing translation, only a missing key).
-- Never create test accounts directly on the live production site
-  (`student-keep.vercel.app`) — use the local dev server for testing
-  (`npm run dev` / the `student-keep-dev` launch config), which hits the
-  same DB, then clean up test accounts via direct SQL afterward.
+  key)`; client components receive `lang` as a prop. New dictionary keys go
+  in `src/lib/i18n/dictionary.ts` (both `en` and `he`).
+- Never create test accounts directly on the live production site — use the
+  local dev server (hits the same DB), then clean up via direct SQL.
+- **New this session**: there is now a real test suite (`npm test`, vitest).
+  Run it before any future storage-layer change. Vitest doesn't auto-load
+  `.env` the way Next.js does — `vitest.config.ts` explicitly calls
+  `dotenv`'s `config()` to load it.
+- Vercel CLI is not authenticated in this environment — env var changes and
+  redeploys go through the dashboard, done manually by the user.
 
-## Recommended next-session opening move
-
-Read this file, then ask what's next — there's no pre-committed task list
-left from today's plan (`FULL_FEATURE_BUILD_PLAN.md` is fully done). The
-main open item is the R2 migration decision above, if that's the next
-priority.
+**Current live invite code:** `p_ehS3aZa-6R`
