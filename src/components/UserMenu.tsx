@@ -1,7 +1,9 @@
 import { logout } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/dal";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
-export async function UserMenu() {
+export async function UserMenu({ lang }: { lang: Lang }) {
   const user = await getCurrentUser();
   if (!user) return null;
 
@@ -15,7 +17,7 @@ export async function UserMenu() {
       </span>
       <form action={logout}>
         <button type="submit" className="btn btn-ghost" style={{ fontSize: 13 }}>
-          Sign out
+          {t(lang, "signOut")}
         </button>
       </form>
     </div>
