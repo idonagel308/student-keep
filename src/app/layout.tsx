@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { UserMenu } from "@/components/UserMenu";
@@ -12,7 +13,7 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Course Tracker",
+  title: "Student Keep",
   description: "Track semesters, courses, lectures and homework.",
 };
 
@@ -39,9 +40,9 @@ export default function RootLayout({
       </head>
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         <header className="nav" style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
-          <a href="/" className="nav-brand">
-            Course Tracker
-          </a>
+          <Link href="/" className="nav-brand">
+            Student Keep
+          </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginInlineStart: "auto" }}>
             <ThemeToggle />
             <UserMenu />

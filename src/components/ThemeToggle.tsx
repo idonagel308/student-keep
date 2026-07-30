@@ -15,6 +15,10 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
+    // Synced from the data-theme DOM attribute the blocking pre-hydration
+    // script in layout.tsx sets before this component ever mounts — there's
+    // no React-owned state to read this from instead.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(currentTheme());
   }, []);
 

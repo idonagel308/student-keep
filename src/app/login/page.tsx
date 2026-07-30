@@ -33,7 +33,7 @@ export default async function LoginPage() {
           Welcome back
         </div>
         <h1 style={{ fontSize: "clamp(36px,6vw,56px)", margin: "0 0 16px", lineHeight: 1.05 }}>
-          Course Tracker
+          Student Keep
         </h1>
         <p
           style={{
