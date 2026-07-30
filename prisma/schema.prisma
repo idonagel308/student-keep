@@ -20,6 +20,11 @@ model User {
   tokenVersion Int      @default(0) @map("token_version")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  /// Degree page title. Falls back to a generic label if unset.
+  degreeName String? @map("degree_name")
+  /// Degree page total credits target. Falls back to 120 if unset.
+  creditsRequired Float? @map("credits_required")
+
   semesters Semester[]
 
   @@map("users")
@@ -49,6 +54,10 @@ model Course {
   color         String?
   createdAt     DateTime @default(now()) @map("created_at")
 
+  /// Final grade, 0-100. Null means "not graded yet" and is excluded from
+  /// GPA math entirely (not treated as a 0).
+  examScore Float? @map("exam_score")
+
   semester Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   lectures Lecture[]
   homework Homework[]
@@ -66,6 +75,11 @@ model Lecture {
   summaryFileUrl  String? @map("summary_file_url")
   summaryFileName String? @map("summary_file_name")
   createdAt       DateTime @default(now()) @map("created_at")
+
+  /// Auto-assigned weekly from the semester start date when the course is
+  /// created (or extended), and manually overridable per lecture. Drives
+  /// both the Pace indicator and the "lectures this week" list.
+  scheduledDate DateTime? @map("scheduled_date")
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

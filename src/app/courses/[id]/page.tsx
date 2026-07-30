@@ -6,7 +6,9 @@ import { updateCourse, deleteCourse } from "@/app/actions/courses";
 import { HomeworkForm } from "@/components/forms/HomeworkForm";
 import { HomeworkItem } from "@/components/HomeworkItem";
 import { LectureRow } from "@/components/LectureRow";
+import { ScheduleWeeklyButton } from "@/components/ScheduleWeeklyButton";
 import { CourseForm } from "@/components/forms/CourseForm";
+import { CourseGrade } from "@/components/forms/CourseGrade";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { ProgressRing } from "@/components/ProgressRing";
@@ -112,6 +114,7 @@ export default async function CoursePage({
             confirmMessage="Delete this course and all its lectures and homework?"
           />
         </div>
+        <CourseGrade courseId={course.id} examScore={course.examScore} />
       </div>
 
       <div
@@ -140,11 +143,16 @@ export default async function CoursePage({
               No lectures. Edit the course to set a lecture count.
             </p>
           ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {course.lectures.map((l) => (
-                <LectureRow key={l.id} lecture={l} />
-              ))}
-            </ul>
+            <>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {course.lectures.map((l) => (
+                  <LectureRow key={l.id} lecture={l} />
+                ))}
+              </ul>
+              <div style={{ marginTop: 12 }}>
+                <ScheduleWeeklyButton courseId={course.id} />
+              </div>
+            </>
           )}
         </section>
 

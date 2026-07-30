@@ -6,7 +6,10 @@ import {
   toggleLecture,
   uploadLectureSummary,
   removeLectureSummary,
+  updateLecture,
 } from "@/app/actions/lectures";
+import { LectureForm } from "@/components/forms/LectureForm";
+import { formatDate, formatDateInput } from "@/lib/format";
 import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
 import type { Lecture } from "@/generated/prisma/client";
 
@@ -37,6 +40,10 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
         </button>
       </form>
 
+      <span style={{ flex: "none", fontSize: "11.5px", color: "var(--color-neutral-500)", width: 20 }}>
+        {lecture.number}
+      </span>
+
       <span
         style={{
           minWidth: 0,
@@ -46,8 +53,11 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
           textDecoration: lecture.watched ? "line-through" : "none",
         }}
       >
-        Lecture {lecture.number}
-        {lecture.title ? ` — ${lecture.title}` : ""}
+        {lecture.title || `Lecture ${lecture.number}`}
+      </span>
+
+      <span style={{ flex: "none", fontSize: 11.5, color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+        {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : "No date"}
       </span>
 
       {lecture.summaryFileUrl ? (
@@ -117,6 +127,16 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
           <AttachIcon />
         </button>
       )}
+
+      <LectureForm
+        action={updateLecture}
+        initial={{
+          id: lecture.id,
+          number: lecture.number,
+          title: lecture.title,
+          scheduledDate: lecture.scheduledDate ? formatDateInput(lecture.scheduledDate) : "",
+        }}
+      />
     </li>
   );
 }
