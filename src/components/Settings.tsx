@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { ActionForm } from "@/components/ActionForm";
-import { logout } from "@/app/actions/auth";
+import { logout, deleteAccount } from "@/app/actions/auth";
+import { DeleteButton } from "@/components/DeleteButton";
 import { setLanguage, setDegreeSettings } from "@/app/actions/settings";
 import { inputClass, labelClass, btnPrimary } from "@/components/ui";
 import { GearIcon, LogoutIcon } from "@/components/icons";
@@ -212,6 +213,20 @@ export function Settings({
                 {t(lang, "logOut")}
               </button>
             </form>
+          </div>
+
+          {/* Danger zone */}
+          <div style={{ borderTop: "1px solid var(--color-divider)", paddingTop: 20 }}>
+            <p style={{ fontSize: "11.5px", color: "var(--color-accent-2)", margin: "0 0 10px", lineHeight: 1.5 }}>
+              {t(lang, "deleteAccountWarning")}
+            </p>
+            <DeleteButton
+              action={deleteAccount}
+              hidden={{}}
+              label={t(lang, "deleteAccountLabel")}
+              className="btn btn-secondary btn-block"
+              confirmMessage={t(lang, "deleteAccountConfirm")}
+            />
           </div>
         </div>
       )}

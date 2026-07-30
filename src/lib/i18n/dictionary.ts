@@ -189,6 +189,11 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lecturesLabel: "Lectures",
     addShort: "+ Add",
     lectureNumber: (n) => `Lecture ${n}`,
+    deleteAccountLabel: "Delete account",
+    deleteAccountConfirm:
+      "Permanently delete your account? This removes every semester, course, lecture and homework record you have — there is no way to undo this.",
+    deleteAccountWarning:
+      "This permanently deletes your account and everything in it. There is no way to undo this.",
   },
   he: {
     brand: "פנקס הסטודנט",
@@ -363,5 +368,10 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lecturesLabel: "הרצאות",
     addShort: "+ הוספה",
     lectureNumber: (n) => `הרצאה ${n}`,
+    deleteAccountLabel: "מחיקת חשבון",
+    deleteAccountConfirm:
+      "למחוק את החשבון לצמיתות? פעולה זו תמחק כל סמסטר, קורס, הרצאה ומטלה שיש לך — אין דרך לבטל זאת.",
+    deleteAccountWarning:
+      "פעולה זו מוחקת לצמיתות את החשבון שלך ואת כל מה שבו. אין דרך לבטל זאת.",
   },
 };

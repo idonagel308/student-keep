@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
 import { checkRateLimit, recordAttempt, getClientIp } from "@/lib/rateLimit";
+import { requireUser } from "@/lib/dal";
 
 export type AuthState = { error: string } | undefined;
 
@@ -134,6 +135,20 @@ export async function login(
 }
 
 export async function logout() {
+  await deleteSession();
+  redirect("/login");
+}
+
+/**
+ * Permanently deletes the current user and every semester/course/lecture/
+ * homework row under them (Prisma's onDelete: Cascade on Semester ->
+ * Course -> Lecture/Homework handles the fan-out from one delete call).
+ * Confirmation happens client-side (see Settings.tsx) before this is ever
+ * invoked — there is no undo once this runs.
+ */
+export async function deleteAccount() {
+  const user = await requireUser();
+  await prisma.user.delete({ where: { id: user.id } });
   await deleteSession();
   redirect("/login");
 }
