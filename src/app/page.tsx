@@ -6,6 +6,8 @@ import { toggleLecture } from "@/app/actions/lectures";
 import { CheckIcon } from "@/components/icons";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ type LectureRow = {
 
 export default async function WeekPage() {
   const user = await requireUser();
+  const lang = await getLang();
   const semesters = await prisma.semester.findMany({
     where: { userId: user.id },
     orderBy: { startDate: "desc" },
@@ -94,10 +97,10 @@ export default async function WeekPage() {
 
   const headline =
     dueRows.length === 0
-      ? "Nothing due this week."
+      ? t(lang, "nothingDueThisWeek")
       : overdueCount > 0
-        ? `${overdueCount} ${overdueCount === 1 ? "thing is" : "things are"} overdue`
-        : `${dueRows.length} ${dueRows.length === 1 ? "thing due" : "things due"} this week`;
+        ? t(lang, "overdueCount", overdueCount)
+        : t(lang, "dueCount", dueRows.length);
 
   return (
     <div className="animate-in" style={{ paddingTop: 52 }}>
@@ -111,13 +114,13 @@ export default async function WeekPage() {
             marginBottom: 9,
           }}
         >
-          Week of {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d")}
+          {t(lang, "weekOf", `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`)}
         </div>
         <h1 style={{ fontSize: "clamp(38px,6vw,56px)", margin: "0 0 12px" }}>{headline}</h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
           {active
             ? `${active.name} · ${formatDate(active.startDate)} – ${formatDate(active.endDate)}`
-            : "No semester in progress."}
+            : t(lang, "noSemesterInProgress")}
         </p>
       </div>
 
@@ -130,9 +133,9 @@ export default async function WeekPage() {
         }}
       >
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>Due this week</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>{t(lang, "dueThisWeek")}</h2>
           <p style={{ fontSize: "12.5px", color: "var(--color-neutral-600)", margin: "0 0 20px" }}>
-            {overdueCount > 0 ? "Overdue first, then the rest of the week." : "Everything landing by Sunday."}
+            {overdueCount > 0 ? t(lang, "overdueFirst") : t(lang, "bySunday")}
           </p>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {dueRows.map((r) => (
@@ -150,7 +153,7 @@ export default async function WeekPage() {
                 <form action={toggleHomework as (fd: FormData) => void}>
                   <input type="hidden" name="id" value={r.homeworkId} />
                   <input type="hidden" name="courseId" value={r.courseId} />
-                  <button type="submit" className="check-box" aria-label={`Mark done: ${r.name}`}>
+                  <button type="submit" className="check-box" aria-label={`${t(lang, "markDone")}: ${r.name}`}>
                     <CheckIcon checked={false} />
                   </button>
                 </form>
@@ -192,15 +195,17 @@ export default async function WeekPage() {
           </div>
           {dueRows.length === 0 && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-              Nothing due before Sunday.
+              {t(lang, "emptyDue")}
             </p>
           )}
         </section>
 
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>Lectures this week</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>{t(lang, "lecturesThisWeek")}</h2>
           <p style={{ fontSize: "12.5px", color: "var(--color-neutral-600)", margin: "0 0 20px" }}>
-            {active ? `Scheduled between ${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}.` : "—"}
+            {active
+              ? t(lang, "scheduledBetween", `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`)
+              : "—"}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {lectureRows.map((l) => (
@@ -216,11 +221,7 @@ export default async function WeekPage() {
                       type="submit"
                       className="check-box"
                       aria-pressed={l.watched}
-                      aria-label={
-                        l.watched
-                          ? `Mark unwatched: ${l.title ?? "Lecture " + l.number}`
-                          : `Mark watched: ${l.title ?? "Lecture " + l.number}`
-                      }
+                      aria-label={`${l.watched ? t(lang, "markUnwatched") : t(lang, "markWatched")}: ${l.title ?? t(lang, "lectureNumber", l.number)}`}
                     >
                       <CheckIcon checked={l.watched} />
                     </button>
@@ -248,7 +249,7 @@ export default async function WeekPage() {
                       {l.courseName}
                     </span>
                     <span style={{ display: "block", fontSize: "14.5px", marginTop: 4 }}>
-                      {l.title || `Lecture ${l.number}`}
+                      {l.title || t(lang, "lectureNumber", l.number)}
                     </span>
                   </Link>
                   <span
@@ -286,7 +287,7 @@ export default async function WeekPage() {
           </div>
           {lectureRows.length === 0 && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-              {active ? "No lectures scheduled this week." : "No semester in progress."}
+              {active ? t(lang, "emptyLectures") : t(lang, "noSemesterInProgress")}
             </p>
           )}
         </section>

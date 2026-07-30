@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
 type DegreeCourse = {
   id: string;
@@ -26,7 +28,7 @@ function gradeStyle(examScore: number | null): React.CSSProperties {
     : { ...base, background: "var(--color-accent-2-100)", color: "var(--color-accent-2-800)" };
 }
 
-export function DegreeCourseList({ courses }: { courses: DegreeCourse[] }) {
+export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; lang: Lang }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
@@ -44,7 +46,7 @@ export function DegreeCourseList({ courses }: { courses: DegreeCourse[] }) {
       <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 20, maxWidth: 340 }}>
         <input
           type="search"
-          placeholder="Search courses…"
+          placeholder={t(lang, "searchCourses")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="input"
@@ -78,7 +80,7 @@ export function DegreeCourseList({ courses }: { courses: DegreeCourse[] }) {
               <div style={{ fontSize: "14.5px" }}>{c.name}</div>
               <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
                 {c.semesterName}
-                {c.credits != null ? ` · ${c.credits} credits` : ""}
+                {c.credits != null ? ` · ${t(lang, "creditsCount", c.credits)}` : ""}
               </div>
             </div>
             <span style={gradeStyle(c.examScore)}>{c.examScore === null ? "—" : c.examScore}</span>
@@ -87,7 +89,7 @@ export function DegreeCourseList({ courses }: { courses: DegreeCourse[] }) {
       </div>
       {list.length === 0 && (
         <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-          {q ? "No courses match that." : "No final grades recorded yet."}
+          {q ? t(lang, "noMatches") : t(lang, "noGrades")}
         </p>
       )}
     </>

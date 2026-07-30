@@ -29,7 +29,7 @@ export function NavTabs({ lang }: { lang: Lang }) {
             aria-current={active ? "page" : undefined}
             style={{
               fontSize: "13.5px",
-              textDecoration: active ? "underline" : "none",
+              textDecorationLine: active ? "underline" : "none",
               textUnderlineOffset: 5,
               textDecorationColor: "var(--color-accent)",
               textDecorationThickness: 2,

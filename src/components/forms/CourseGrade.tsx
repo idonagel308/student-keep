@@ -4,13 +4,17 @@ import { Modal } from "@/components/Modal";
 import { ActionForm } from "@/components/ActionForm";
 import { setCourseGrade } from "@/app/actions/courses";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
 export function CourseGrade({
   courseId,
   examScore,
+  lang,
 }: {
   courseId: string;
   examScore: number | null;
+  lang: Lang;
 }) {
   const graded = examScore !== null;
   const passed = graded && examScore >= 60;
@@ -36,7 +40,7 @@ export function CourseGrade({
             marginBottom: 8,
           }}
         >
-          Final exam
+          {t(lang, "finalExam")}
         </div>
         <div
           style={{
@@ -50,14 +54,15 @@ export function CourseGrade({
           {graded ? examScore : "—"}
         </div>
         <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 8 }}>
-          {graded ? (passed ? "Passed" : "Failed") : "Not graded yet"}
+          {graded ? (passed ? t(lang, "passed") : t(lang, "failed")) : t(lang, "notGradedYet")}
         </div>
       </div>
       <Modal
-        title={graded ? "Edit grade" : "Enter grade"}
+        closeLabel={t(lang, "close")}
+        title={graded ? t(lang, "editGrade") : t(lang, "enterGrade")}
         trigger={(open) => (
           <button type="button" onClick={open} className="btn btn-secondary" style={{ fontSize: "12.5px" }}>
-            {graded ? "Edit grade" : "Enter grade"}
+            {graded ? t(lang, "editGrade") : t(lang, "enterGrade")}
           </button>
         )}
       >
@@ -67,7 +72,7 @@ export function CourseGrade({
               <div className="space-y-4">
                 <input type="hidden" name="id" value={courseId} />
                 <div className="field">
-                  <label className={labelClass}>Final exam score</label>
+                  <label className={labelClass}>{t(lang, "examScoreLabel")}</label>
                   <input
                     type="number"
                     name="examScore"
@@ -78,15 +83,15 @@ export function CourseGrade({
                     className={inputClass}
                   />
                   <p style={{ marginTop: 4, fontSize: 12, color: "var(--color-neutral-600)" }}>
-                    Out of 100. Leave empty if the course has no final exam.
+                    {t(lang, "gradeOutOf100")}
                   </p>
                 </div>
                 <div className="dialog-actions">
                   <button type="button" onClick={close} className={btnSecondary}>
-                    Cancel
+                    {t(lang, "cancel")}
                   </button>
                   <button type="submit" disabled={pending} className={btnPrimary}>
-                    {pending ? "Saving…" : "Save"}
+                    {pending ? t(lang, "saving") : t(lang, "save")}
                   </button>
                 </div>
               </div>

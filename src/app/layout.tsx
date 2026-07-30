@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Source_Serif_4, Frank_Ruhl_Libre } from "next/font/google";
 import "./globals.css";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -56,10 +57,10 @@ export default async function RootLayout({
       className={`${sourceSerif.variable} ${frankRuhlLibre.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
         <header className="nav" style={{ maxWidth: 1120, margin: "0 auto", width: "100%" }}>
           <Link href="/" className="nav-brand">
             {t(lang, "brand")}

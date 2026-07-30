@@ -49,6 +49,7 @@ export function Settings({
 
   return (
     <Modal
+      closeLabel={t(lang, "close")}
       title={t(lang, "settings")}
       trigger={(open) => (
         <button

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { scheduleLecturesWeekly } from "@/app/actions/lectures";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
-export function ScheduleWeeklyButton({ courseId }: { courseId: string }) {
+export function ScheduleWeeklyButton({ courseId, lang }: { courseId: string; lang: Lang }) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -13,9 +15,9 @@ export function ScheduleWeeklyButton({ courseId }: { courseId: string }) {
         onClick={() => setOpen(true)}
         className="btn btn-ghost"
         style={{ gap: 7 }}
-        title="One lecture a week, starting from a date you pick"
+        title={t(lang, "scheduleWeeklyHint")}
       >
-        Schedule weekly
+        {t(lang, "scheduleWeekly")}
       </button>
     );
   }
@@ -28,7 +30,7 @@ export function ScheduleWeeklyButton({ courseId }: { courseId: string }) {
       <input type="hidden" name="courseId" value={courseId} />
       <input type="date" name="startDate" required className="input" style={{ minHeight: 32, fontSize: 13 }} />
       <button type="submit" className="btn btn-primary" style={{ fontSize: 12 }}>
-        Apply
+        {t(lang, "apply")}
       </button>
       <button
         type="button"
@@ -36,7 +38,7 @@ export function ScheduleWeeklyButton({ courseId }: { courseId: string }) {
         className="btn btn-ghost"
         style={{ fontSize: 12 }}
       >
-        Cancel
+        {t(lang, "cancel")}
       </button>
     </form>
   );

@@ -3,6 +3,8 @@
 import { Modal } from "@/components/Modal";
 import { ActionForm, type ActionState } from "@/components/ActionForm";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
 type HomeworkValues = {
   id: string;
@@ -22,6 +24,7 @@ export function HomeworkForm({
   triggerClassName,
   triggerAriaLabel,
   title,
+  lang,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   courseId: string;
@@ -30,9 +33,11 @@ export function HomeworkForm({
   triggerClassName?: string;
   triggerAriaLabel?: string;
   title: string;
+  lang: Lang;
 }) {
   return (
     <Modal
+      closeLabel={t(lang, "close")}
       title={title}
       trigger={(open) => (
         <button
@@ -53,7 +58,7 @@ export function HomeworkForm({
               {initial && <input type="hidden" name="id" value={initial.id} />}
 
               <div className="field">
-                <label className={labelClass}>Assignment name</label>
+                <label className={labelClass}>{t(lang, "assignmentName")}</label>
                 <input
                   name="name"
                   required
@@ -64,7 +69,7 @@ export function HomeworkForm({
               </div>
 
               <div className="field">
-                <label className={labelClass}>Details / task description</label>
+                <label className={labelClass}>{t(lang, "detailsLabel")}</label>
                 <textarea
                   name="details"
                   rows={3}
@@ -75,7 +80,7 @@ export function HomeworkForm({
               </div>
 
               <div className="field">
-                <label className={labelClass}>Due date</label>
+                <label className={labelClass}>{t(lang, "dueDateLabel")}</label>
                 <input
                   type="date"
                   name="dueDate"
@@ -85,9 +90,7 @@ export function HomeworkForm({
               </div>
 
               <div className="field">
-                <label className={labelClass}>
-                  Assignment PDF (instructions, optional)
-                </label>
+                <label className={labelClass}>{t(lang, "assignmentPdfLabel")}</label>
                 <input
                   type="file"
                   name="assignmentFile"
@@ -99,8 +102,7 @@ export function HomeworkForm({
                     className="mt-1 text-xs"
                     style={{ color: "var(--color-neutral-600)" }}
                   >
-                    Current: {initial.assignmentFileName} — choose a file to
-                    replace.
+                    {t(lang, "currentFileNote", initial.assignmentFileName)}
                   </p>
                 )}
               </div>
@@ -109,8 +111,8 @@ export function HomeworkForm({
                 className="rounded-lg p-3"
                 style={{ border: "1px solid var(--color-divider)" }}
               >
-                <p className="mb-2 text-sm font-medium">My answer</p>
-                <label className={labelClass}>Typed answer</label>
+                <p className="mb-2 text-sm font-medium">{t(lang, "myAnswer")}</p>
+                <label className={labelClass}>{t(lang, "typedAnswer")}</label>
                 <textarea
                   name="answerText"
                   rows={3}
@@ -119,7 +121,7 @@ export function HomeworkForm({
                   className={inputClass}
                 />
                 <div className="mt-3 field">
-                  <label className={labelClass}>Or upload answer PDF</label>
+                  <label className={labelClass}>{t(lang, "uploadAnswerPdf")}</label>
                   <input
                     type="file"
                     name="answerFile"
@@ -131,8 +133,7 @@ export function HomeworkForm({
                       className="mt-1 text-xs"
                       style={{ color: "var(--color-neutral-600)" }}
                     >
-                      Current: {initial.answerFileName} — choose a file to
-                      replace.
+                      {t(lang, "currentFileNote", initial.answerFileName)}
                     </p>
                   )}
                 </div>
@@ -140,10 +141,10 @@ export function HomeworkForm({
 
               <div className="dialog-actions">
                 <button type="button" onClick={close} className={btnSecondary}>
-                  Cancel
+                  {t(lang, "cancel")}
                 </button>
                 <button type="submit" disabled={pending} className={btnPrimary}>
-                  {pending ? "Saving…" : "Save"}
+                  {pending ? t(lang, "saving") : t(lang, "save")}
                 </button>
               </div>
             </div>

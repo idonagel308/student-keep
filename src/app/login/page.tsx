@@ -2,11 +2,14 @@ import { redirect } from "next/navigation";
 import { login } from "@/app/actions/auth";
 import { AuthForm } from "@/components/AuthForm";
 import { getCurrentUser } from "@/lib/dal";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   if (await getCurrentUser()) redirect("/");
+  const lang = await getLang();
 
   return (
     <main
@@ -30,10 +33,10 @@ export default async function LoginPage() {
             marginBottom: 12,
           }}
         >
-          Welcome back
+          {t(lang, "loginKicker")}
         </div>
         <h1 style={{ fontSize: "clamp(36px,6vw,56px)", margin: "0 0 16px", lineHeight: 1.05 }}>
-          Student Keep
+          {t(lang, "brand")}
         </h1>
         <p
           style={{
@@ -44,11 +47,11 @@ export default async function LoginPage() {
             maxWidth: "36ch",
           }}
         >
-          Sign in to keep tracking your semesters, courses, lectures and homework.
+          {t(lang, "loginBlurb")}
         </p>
       </div>
       <div style={{ width: "100%", maxWidth: 370, justifySelf: "end" }}>
-        <AuthForm mode="login" action={login} />
+        <AuthForm mode="login" action={login} lang={lang} />
       </div>
     </main>
   );

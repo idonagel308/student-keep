@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { gpaStats } from "@/lib/progress";
 import { requireUser } from "@/lib/dal";
 import { DegreeCourseList } from "@/components/DegreeCourseList";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +13,15 @@ function num(n: number) {
   return Number(n.toFixed(1)).toString();
 }
 
-function semesterStatus(start: Date, end: Date, now: Date) {
-  if (start > now) return "Planned";
-  if (end < now) return "Completed";
-  return "In progress";
+function semesterStatus(start: Date, end: Date, now: Date, lang: Lang) {
+  if (start > now) return t(lang, "groupPlanned");
+  if (end < now) return t(lang, "groupComplete");
+  return t(lang, "groupActive");
 }
 
 export default async function DegreePage() {
   const user = await requireUser();
+  const lang = await getLang();
   const semesters = await prisma.semester.findMany({
     where: { userId: user.id },
     orderBy: { startDate: "desc" },
@@ -43,13 +47,13 @@ export default async function DegreePage() {
             marginBottom: 9,
           }}
         >
-          {user.degreeName ?? "Degree overview"}
+          {user.degreeName ?? t(lang, "degreeOverview")}
         </div>
         <h1 style={{ fontSize: "clamp(38px,6vw,56px)", margin: "0 0 12px" }}>
-          {num(stats.earned)} of {num(required)} credits earned
+          {t(lang, "creditsOf", num(stats.earned), num(required))}
         </h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
-          {left > 0 ? `${num(left)} credits still to earn.` : "Degree complete — every credit is in."}
+          {left > 0 ? t(lang, "creditsRemaining", num(left)) : t(lang, "degreeDone")}
         </p>
       </div>
 
@@ -64,13 +68,13 @@ export default async function DegreePage() {
               marginBottom: 8,
             }}
           >
-            Average
+            {t(lang, "gpaLabel")}
           </div>
           <div style={{ fontSize: "clamp(48px,8vw,72px)", fontWeight: 600, lineHeight: 0.9, fontFeatureSettings: "'tnum' 1" }}>
             {stats.avg === null ? "—" : num(stats.avg)}
           </div>
           <div style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", marginTop: 10, maxWidth: "24ch", lineHeight: 1.5 }}>
-            Weighted by credits across every graded course.
+            {t(lang, "gpaNote")}
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 260 }}>
@@ -84,7 +88,9 @@ export default async function DegreePage() {
               fontFeatureSettings: "'tnum' 1",
             }}
           >
-            <span>Credits earned {num(stats.earned)}</span>
+            <span>
+              {t(lang, "creditsEarnedLabel")} {num(stats.earned)}
+            </span>
             <span>{Math.round(pct * 100)}%</span>
           </div>
           <div style={{ height: 10, borderRadius: 99, background: "var(--color-neutral-300)", overflow: "hidden" }}>
@@ -99,7 +105,7 @@ export default async function DegreePage() {
             />
           </div>
           <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 7, fontFeatureSettings: "'tnum' 1" }}>
-            Credits left {num(left)}
+            {t(lang, "creditsLeftLabel")} {num(left)}
           </div>
         </div>
       </div>
@@ -113,7 +119,7 @@ export default async function DegreePage() {
         }}
       >
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 20px" }}>By semester</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 20px" }}>{t(lang, "bySemester")}</h2>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {semesters.map((s) => {
               const sk = gpaStats(s.courses);
@@ -133,7 +139,7 @@ export default async function DegreePage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 15 }}>{s.name}</div>
                     <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
-                      {semesterStatus(s.startDate, s.endDate, now)} · {num(sk.credits)} credits
+                      {semesterStatus(s.startDate, s.endDate, now, lang)} · {t(lang, "creditsCount", num(sk.credits))}
                     </div>
                   </div>
                   <span
@@ -159,8 +165,9 @@ export default async function DegreePage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 16px" }}>Graded courses</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 16px" }}>{t(lang, "gradedCourses")}</h2>
           <DegreeCourseList
+            lang={lang}
             courses={allCourses.map((c) => {
               const semester = semesters.find((s) => s.id === c.semesterId)!;
               return {

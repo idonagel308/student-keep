@@ -9,13 +9,16 @@ import { EditIcon, DeleteIcon, PlusIcon } from "@/components/icons";
 import { semesterProgress, type CourseWithChildren } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
+import { getLang } from "@/lib/i18n/getLang";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 import type { Semester } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
 
 type SemesterWithCourses = Semester & { courses: CourseWithChildren[] };
 
-function SemesterCard({ s }: { s: SemesterWithCourses }) {
+function SemesterCard({ s, lang }: { s: SemesterWithCourses; lang: Lang }) {
   const p = semesterProgress(s.courses);
   return (
     <div className="card elev-sm card-link" style={{ padding: 20, gap: 16 }}>
@@ -31,7 +34,7 @@ function SemesterCard({ s }: { s: SemesterWithCourses }) {
                 marginBottom: 6,
               }}
             >
-              Semester
+              {t(lang, "semesters")}
             </div>
             <div style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.1 }}>{s.name}</div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 5 }}>
@@ -51,22 +54,19 @@ function SemesterCard({ s }: { s: SemesterWithCourses }) {
             fontFeatureSettings: "'tnum' 1",
           }}
         >
-          <span>
-            {p.courseCount} {p.courseCount === 1 ? "course" : "courses"}
-          </span>
-          <span>
-            {p.watched}/{p.totalLectures} lectures
-          </span>
+          <span>{t(lang, "courseCount", p.courseCount)}</span>
+          <span>{t(lang, "lectureCount", p.watched, p.totalLectures)}</span>
         </div>
         <ProgressBar value={p.watched} total={p.totalLectures} className="mt-2" />
       </Link>
       <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
         <SemesterForm
           action={updateSemester}
-          title="Edit semester"
+          title={t(lang, "editSemester")}
           triggerLabel={<EditIcon />}
           triggerClassName="btn btn-icon btn-ghost"
-          triggerAriaLabel={`Edit ${s.name}`}
+          triggerAriaLabel={`${t(lang, "edit")} ${s.name}`}
+          lang={lang}
           initial={{
             id: s.id,
             name: s.name,
@@ -78,9 +78,9 @@ function SemesterCard({ s }: { s: SemesterWithCourses }) {
           action={deleteSemester}
           hidden={{ id: s.id }}
           label={<DeleteIcon />}
-          ariaLabel={`Delete ${s.name}`}
+          ariaLabel={`${t(lang, "delete")} ${s.name}`}
           className="btn btn-icon btn-ghost-danger"
-          confirmMessage="Delete this semester and all its courses? This cannot be undone."
+          confirmMessage={t(lang, "deleteSemesterConfirm")}
         />
       </div>
     </div>
@@ -89,6 +89,7 @@ function SemesterCard({ s }: { s: SemesterWithCourses }) {
 
 export default async function SemestersPage() {
   const user = await requireUser();
+  const lang = await getLang();
   const semesters = await prisma.semester.findMany({
     where: { userId: user.id },
     orderBy: { startDate: "desc" },
@@ -114,14 +115,18 @@ export default async function SemestersPage() {
     return { key, list };
   });
 
-  const labels = { active: "In progress", planned: "Planned", complete: "Completed" };
+  const labels = {
+    active: t(lang, "groupActive"),
+    planned: t(lang, "groupPlanned"),
+    complete: t(lang, "groupComplete"),
+  };
 
   return (
     <div className="animate-in" style={{ paddingTop: 52 }}>
       <div style={{ maxWidth: 640 }}>
-        <h1 style={{ fontSize: "clamp(34px,6vw,48px)", margin: "0 0 10px" }}>Semesters</h1>
+        <h1 style={{ fontSize: "clamp(34px,6vw,48px)", margin: "0 0 10px" }}>{t(lang, "semesters")}</h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
-          {semesters.length} {semesters.length === 1 ? "semester" : "semesters"} tracked
+          {t(lang, "semestersCount", semesters.length)}
         </p>
       </div>
 
@@ -153,21 +158,22 @@ export default async function SemestersPage() {
                 }}
               >
                 {g.list.map((s) => (
-                  <SemesterCard key={s.id} s={s} />
+                  <SemesterCard key={s.id} s={s} lang={lang} />
                 ))}
                 {g.key === "active" && (
                   <SemesterForm
                     action={createSemester}
-                    title="Add semester"
+                    title={t(lang, "addSemester")}
                     triggerClassName="card-dashed"
+                    lang={lang}
                     triggerLabel={
                       <>
                         <PlusIcon />
                         <span style={{ display: "block", fontWeight: 600, fontSize: 17, marginTop: 8 }}>
-                          Add semester
+                          {t(lang, "addSemester")}
                         </span>
                         <span style={{ display: "block", fontSize: 12, color: "var(--color-neutral-600)" }}>
-                          Start tracking a new term
+                          {t(lang, "addSemesterSub")}
                         </span>
                       </>
                     }

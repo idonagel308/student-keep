@@ -11,9 +11,11 @@ import {
 import { LectureForm } from "@/components/forms/LectureForm";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
+import { t } from "@/lib/i18n/t";
+import type { Lang } from "@/lib/i18n/dictionary";
 import type { Lecture } from "@/generated/prisma/client";
 
-export function LectureRow({ lecture }: { lecture: Lecture }) {
+export function LectureRow({ lecture, lang }: { lecture: Lecture; lang: Lang }) {
   const [showUpload, setShowUpload] = useState(false);
 
   return (
@@ -34,7 +36,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
           type="submit"
           className="check-box"
           aria-pressed={lecture.watched}
-          aria-label={lecture.watched ? "Mark as not watched" : "Mark as watched"}
+          aria-label={lecture.watched ? t(lang, "markUnwatched") : t(lang, "markWatched")}
         >
           <CheckIcon checked={lecture.watched} />
         </button>
@@ -53,11 +55,11 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
           textDecoration: lecture.watched ? "line-through" : "none",
         }}
       >
-        {lecture.title || `Lecture ${lecture.number}`}
+        {lecture.title || t(lang, "lectureNumber", lecture.number)}
       </span>
 
       <span style={{ flex: "none", fontSize: 11.5, color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
-        {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : "No date"}
+        {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : t(lang, "noDate")}
       </span>
 
       {lecture.summaryFileUrl ? (
@@ -71,7 +73,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
             title={lecture.summaryFileName ?? "Summary PDF"}
           >
             <PdfIcon />
-            Summary
+            {t(lang, "summary")}
           </a>
           <form action={removeLectureSummary as (fd: FormData) => void}>
             <input type="hidden" name="id" value={lecture.id} />
@@ -80,7 +82,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
               type="submit"
               className="btn btn-icon btn-ghost-danger"
               style={{ width: 24, height: 24 }}
-              aria-label="Remove summary"
+              aria-label={t(lang, "removeSummary")}
             >
               ✕
             </button>
@@ -104,7 +106,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
                 className="max-w-[180px] text-xs"
               />
               <button type="submit" disabled={pending} className="btn btn-primary" style={{ fontSize: 12 }}>
-                {pending ? "Uploading…" : "Upload"}
+                {pending ? t(lang, "uploading") : t(lang, "upload")}
               </button>
               <button
                 type="button"
@@ -112,7 +114,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
                 className="btn btn-ghost"
                 style={{ fontSize: 12 }}
               >
-                Cancel
+                {t(lang, "cancel")}
               </button>
             </>
           )}
@@ -122,7 +124,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
           type="button"
           onClick={() => setShowUpload(true)}
           className="btn btn-icon btn-ghost"
-          aria-label="Attach a PDF summary"
+          aria-label={t(lang, "attach")}
         >
           <AttachIcon />
         </button>
@@ -130,6 +132,7 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
 
       <LectureForm
         action={updateLecture}
+        lang={lang}
         initial={{
           id: lecture.id,
           number: lecture.number,

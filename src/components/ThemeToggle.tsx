@@ -37,7 +37,7 @@ export function ThemeToggle({ lang }: { lang: Lang }) {
       onClick={toggle}
       className="btn btn-secondary"
       style={{ fontSize: 12, gap: 6 }}
-      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={theme === "dark" ? t(lang, "switchToLight") : t(lang, "switchToDark")}
     >
       <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
         <path
