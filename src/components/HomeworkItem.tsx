@@ -9,57 +9,74 @@ import {
   removeHomeworkFile,
 } from "@/app/actions/homework";
 import { formatDate, formatDateInput, dueLabel, dueStatus } from "@/lib/format";
+import { CheckIcon } from "@/components/icons";
 import type { Homework } from "@/generated/prisma/client";
 
-const dueStyles: Record<string, string> = {
-  overdue: "text-red-600 dark:text-red-400",
-  today: "text-amber-600 dark:text-amber-400",
-  upcoming: "text-slate-500 dark:text-slate-400",
+const dueColors: Record<string, string> = {
+  overdue: "var(--color-accent-2)",
+  today: "var(--color-accent-700)",
+  upcoming: "var(--color-neutral-600)",
 };
 
 export function HomeworkItem({ hw }: { hw: Homework }) {
   return (
-    <li className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-      <div className="flex items-start gap-3">
-        <form action={toggleHomework as (fd: FormData) => void} className="pt-0.5">
+    <li className="card" style={{ padding: 14, gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <form action={toggleHomework as (fd: FormData) => void} style={{ paddingTop: 2 }}>
           <input type="hidden" name="id" value={hw.id} />
           <input type="hidden" name="courseId" value={hw.courseId} />
           <button
             type="submit"
+            className="check-box"
+            aria-pressed={hw.completed}
             aria-label={hw.completed ? "Mark incomplete" : "Mark complete"}
-            className={`flex h-5 w-5 items-center justify-center rounded border text-xs ${
-              hw.completed
-                ? "border-emerald-500 bg-emerald-500 text-white"
-                : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800"
-            }`}
           >
-            {hw.completed ? "✓" : ""}
+            <CheckIcon checked={hw.completed} />
           </button>
         </form>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
             <h3
-              className={`font-medium ${
-                hw.completed ? "text-slate-400 line-through dark:text-slate-500" : ""
-              }`}
+              style={{
+                fontWeight: 600,
+                fontSize: 15,
+                margin: 0,
+                color: hw.completed ? "var(--color-neutral-500)" : "inherit",
+                textDecoration: hw.completed ? "line-through" : "none",
+              }}
             >
               {hw.name}
             </h3>
             {hw.dueDate && (
-              <span className={`text-xs ${dueStyles[dueStatus(hw.dueDate)]}`}>
+              <span style={{ fontSize: 12, color: dueColors[dueStatus(hw.dueDate)] }}>
                 {formatDate(hw.dueDate)} · {dueLabel(hw.dueDate)}
               </span>
             )}
           </div>
 
           {hw.details && (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+            <p
+              style={{
+                marginTop: 4,
+                whiteSpace: "pre-wrap",
+                fontSize: 13,
+                color: "var(--color-neutral-700)",
+              }}
+            >
               {hw.details}
             </p>
           )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
             {hw.assignmentFileUrl && (
               <FileChip
                 url={hw.assignmentFileUrl}
@@ -83,23 +100,29 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
           </div>
 
           {hw.answerText && (
-            <div className="mt-2 rounded-md bg-slate-50 p-3 text-sm dark:bg-slate-800/50">
-              <p className="mb-1 text-xs font-medium text-slate-500">
+            <div
+              style={{
+                marginTop: 8,
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg)",
+                padding: 10,
+              }}
+            >
+              <p style={{ marginBottom: 4, fontSize: 11, fontWeight: 600, color: "var(--color-neutral-600)" }}>
                 My typed answer
               </p>
-              <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-200">
-                {hw.answerText}
-              </p>
+              <p style={{ whiteSpace: "pre-wrap", fontSize: 13, margin: 0 }}>{hw.answerText}</p>
             </div>
           )}
 
-          <div className="mt-3 flex items-center gap-3 text-sm">
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
             <HomeworkForm
               action={updateHomework}
               courseId={hw.courseId}
               title="Edit homework"
               triggerLabel="Edit"
-              triggerClassName="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              triggerClassName="btn btn-ghost"
+              triggerAriaLabel={`Edit ${hw.name}`}
               initial={{
                 id: hw.id,
                 name: hw.name,
@@ -114,7 +137,8 @@ export function HomeworkItem({ hw }: { hw: Homework }) {
               action={deleteHomework}
               hidden={{ id: hw.id, courseId: hw.courseId }}
               label="Delete"
-              className="text-red-500 hover:text-red-700"
+              ariaLabel={`Delete ${hw.name}`}
+              className="btn btn-ghost-danger"
               confirmMessage="Delete this homework item?"
             />
           </div>
@@ -140,13 +164,8 @@ function FileChip({
   which: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-slate-700 hover:underline dark:text-slate-200"
-      >
+    <span className="tag tag-neutral" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <a href={url} target="_blank" rel="noopener noreferrer">
         {label}
       </a>
       <form action={removeAction as (fd: FormData) => void}>
@@ -155,7 +174,7 @@ function FileChip({
         <input type="hidden" name="which" value={which} />
         <button
           type="submit"
-          className="text-red-500 hover:text-red-700"
+          style={{ color: "var(--color-accent-2)", background: "none", border: 0, cursor: "pointer" }}
           aria-label={`Remove ${which} file`}
         >
           ✕

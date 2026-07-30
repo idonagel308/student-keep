@@ -42,7 +42,7 @@ export default async function HomePage() {
         {semesters.map((s) => {
           const p = semesterProgress(s.courses);
           return (
-            <div key={s.id} className="card elev-sm" style={{ padding: 20, gap: 16 }}>
+            <div key={s.id} className="card elev-sm card-link" style={{ padding: 20, gap: 16 }}>
               <Link href={`/semesters/${s.id}`} style={{ display: "block" }}>
                 <div
                   style={{

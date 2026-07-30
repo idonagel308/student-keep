@@ -7,57 +7,69 @@ import {
   uploadLectureSummary,
   removeLectureSummary,
 } from "@/app/actions/lectures";
+import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
 import type { Lecture } from "@/generated/prisma/client";
 
 export function LectureRow({ lecture }: { lecture: Lecture }) {
   const [showUpload, setShowUpload] = useState(false);
 
   return (
-    <li className="flex flex-wrap items-center gap-3 border-b border-slate-100 py-2.5 last:border-0 dark:border-slate-800">
+    <li
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 4px",
+        borderBottom: "1px solid var(--color-divider)",
+      }}
+    >
       <form action={toggleLecture as (fd: FormData) => void}>
         <input type="hidden" name="id" value={lecture.id} />
         <input type="hidden" name="courseId" value={lecture.courseId} />
         <button
           type="submit"
+          className="check-box"
+          aria-pressed={lecture.watched}
           aria-label={lecture.watched ? "Mark as not watched" : "Mark as watched"}
-          className={`flex h-5 w-5 items-center justify-center rounded border text-xs ${
-            lecture.watched
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800"
-          }`}
         >
-          {lecture.watched ? "✓" : ""}
+          <CheckIcon checked={lecture.watched} />
         </button>
       </form>
 
       <span
-        className={`min-w-0 flex-1 text-sm ${
-          lecture.watched
-            ? "text-slate-400 line-through dark:text-slate-500"
-            : ""
-        }`}
+        style={{
+          minWidth: 0,
+          flex: 1,
+          fontSize: 14,
+          color: lecture.watched ? "var(--color-neutral-500)" : "var(--color-text)",
+          textDecoration: lecture.watched ? "line-through" : "none",
+        }}
       >
         Lecture {lecture.number}
         {lecture.title ? ` — ${lecture.title}` : ""}
       </span>
 
       {lecture.summaryFileUrl ? (
-        <div className="flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <a
             href={lecture.summaryFileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="btn btn-ghost"
+            style={{ fontSize: 11, gap: 5 }}
             title={lecture.summaryFileName ?? "Summary PDF"}
           >
-            📄 Summary
+            <PdfIcon />
+            Summary
           </a>
           <form action={removeLectureSummary as (fd: FormData) => void}>
             <input type="hidden" name="id" value={lecture.id} />
             <input type="hidden" name="courseId" value={lecture.courseId} />
             <button
               type="submit"
-              className="text-xs text-red-500 hover:text-red-700"
+              className="btn btn-icon btn-ghost-danger"
+              style={{ width: 24, height: 24 }}
               aria-label="Remove summary"
             >
               ✕
@@ -81,17 +93,14 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
                 required
                 className="max-w-[180px] text-xs"
               />
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-md bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700 disabled:opacity-60"
-              >
+              <button type="submit" disabled={pending} className="btn btn-primary" style={{ fontSize: 12 }}>
                 {pending ? "Uploading…" : "Upload"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowUpload(false)}
-                className="text-xs text-slate-500"
+                className="btn btn-ghost"
+                style={{ fontSize: 12 }}
               >
                 Cancel
               </button>
@@ -102,9 +111,10 @@ export function LectureRow({ lecture }: { lecture: Lecture }) {
         <button
           type="button"
           onClick={() => setShowUpload(true)}
-          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+          className="btn btn-icon btn-ghost"
+          aria-label="Attach a PDF summary"
         >
-          + Add PDF
+          <AttachIcon />
         </button>
       )}
     </li>

@@ -45,7 +45,9 @@ export function ActionForm({
     <form ref={formRef} action={formAction} className={className}>
       {children(pending)}
       {state?.error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p className="mt-2 text-sm" style={{ color: "var(--color-accent-2)" }}>
+          {state.error}
+        </p>
       )}
     </form>
   );
