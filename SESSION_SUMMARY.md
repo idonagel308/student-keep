@@ -1,57 +1,116 @@
-# Course Tracker — Session Summary (2026-07-30)
+# Student Keep — Session Summary (2026-07-30)
 
 Read this at the start of tomorrow's session to pick up where we left off.
 
 ## What shipped today
 
-**Full app build** (semesters → courses → lectures → homework), with auth added
-along the way (login/signup, invite-code gated). Deployed and live at
-**https://student-keep.vercel.app**.
+**Full Broadsheet UI overhaul** (design imported via `DesignSync` from the
+Claude Design project) — reskinned every existing page (login, signup,
+semesters list, semester view, course view) to the newsprint/serif design,
+preserving every server action's `formData` field names exactly. Renamed
+the app-facing brand from "Course Tracker" to **Student Keep** to match the
+deployed domain. Added a show/hide password toggle and a confirm-password
+field on signup.
 
-**Comprehensive security audit + fixes** — all findings fixed, verified against
-a real production build, committed, and pushed:
-- Blob file authorization rewritten to check exact stored URLs (was: path-parsed, exploitable via traversal)
-- Uploaded filenames sanitized before use as storage keys
-- Login timing leak fixed (was 250x difference, empirically measured)
-- DB-backed rate limiting on login/signup
-- Security headers (CSP, nosniff, frame-options, etc.)
-- Server-side PDF validation (magic bytes + size cap)
-- `totalLectures` capped to prevent resource exhaustion
-- Migrations no longer run on Vercel preview builds
-- Session hardening: `__Host-` cookie prefix, tokenVersion for revocation, min secret length, constant-time invite-code comparison
-- **Found and fixed a real regression along the way**: the CSP I added initially broke the whole app (blocked Next.js's inline hydration scripts) — caught via testing a real production build, fixed before it shipped
-- **Found and fixed a real bug via the same testing**: Next.js redacts thrown error messages in production ("Incorrect email or password" → generic error). Converted all form actions to return `{error}` state via `useActionState` instead of throwing.
+**Full feature build**, following `FULL_FEATURE_BUILD_PLAN.md` (11 phases,
+all built and verified against a real production build, not just dev mode):
+- **Schema**: `Lecture.scheduledDate` (auto-assigned weekly from the
+  semester start date when a course is created, continues the cadence when
+  lectures are added, manually overridable per lecture), `Course.examScore`
+  (kept in its own action, `setCourseGrade`, separate from `updateCourse` —
+  editing a course's other details can no longer silently wipe its grade),
+  `User.degreeName` / `User.creditsRequired`.
+- **Full English/Hebrew i18n** — cookie-based (not localStorage), so pages
+  render the correct language on the very first server response instead of
+  flashing English. RTL layout, Frank Ruhl Libre font swap for Hebrew.
+  Every string in every page/component is translated.
+- **Settings panel** (gear icon in header): appearance, language, degree
+  name/credits, account info, log out, and — added later today — **account
+  deletion** behind a translated warning + confirm dialog. Cascades to every
+  semester/course/lecture/homework row; no undo.
+- **3-tab navigation**: This week / Degree / Semesters. `/` is now the This
+  Week dashboard; the old semesters list moved to `/semesters`.
+- **This Week page**: due-homework spans every semester (including
+  overdue), lectures shown are scoped to whichever semester is currently
+  active.
+- **Degree page**: credits-weighted GPA (ungraded and zero-credit courses
+  excluded from the average, pass threshold is 60), per-semester breakdown,
+  searchable graded-courses list.
+- **Pace indicator** (semester page): ahead/behind/on-pace vs. lectures
+  actually scheduled to date. **Semester status grouping**: In progress /
+  Planned / Completed sections on the semesters list.
 
-**Deployment troubleshooting** (Vercel):
-- Vercel has a buggy "Microfrontends Config Present" required check that fails even though its own error message says it shouldn't apply to this project (confirmed: dashboard says "This project is not a microfrontend", no toggle exists). Workaround: **Force Promote** / **Promote** from the deployment's `...` menu bypasses it. This will likely keep happening on future pushes until Vercel fixes it on their end.
-- Found and fixed: Vercel's **Framework Preset was set to "Other" instead of "Next.js"**, causing every route to 404 in production. Fixed in Settings → Build and Deployment. (Settings changes don't retroactively apply to already-built deployments — had to redeploy after fixing.)
-- Found and fixed: `SESSION_SECRET`, `SIGNUP_INVITE_CODE`, and `BLOB_READ_WRITE_TOKEN` were never set in Vercel's environment variables (only the Neon DB vars were there, auto-linked). Without `SESSION_SECRET` specifically, no one could sign in at all. Added all three, redeployed, verified signup+login work on the live site.
+**Real bugs caught via live testing at each phase** (not just code review),
+fixed before merging:
+- Editing a course would have silently wiped its grade (fixed by splitting
+  grade-setting into its own action).
+- A stale `.nav-brand { margin-right: auto }` broke the new header layout
+  once nav tabs were added.
+- A pre-existing hydration-mismatch console warning from the theme
+  blocking script — switched to `next/script` (`strategy="beforeInteractive"`),
+  the documented Next.js pattern for this exact case.
+- `NavTabs` mixed the `textDecoration` shorthand with `textDecorationColor`/
+  `Thickness` longhand in the same style object — a real React warning, not
+  cosmetic.
+- Lecture titles fell back to hardcoded English ("Lecture N") even in
+  Hebrew mode — now routes through the dictionary.
 
-**Current live invite code:** `p_ehS3aZa-6R` (from local `.env` / now also in Vercel env vars)
+**Deployed**: merged to `main`, pushed, verified live — `/degree` now
+redirects to login instead of 404ing (confirms the new routes deployed),
+security headers unchanged, no manual Vercel Promote needed this time.
+
+**Current live invite code:** `p_ehS3aZa-6R`
 
 ## Known accounts in the DB right now
 
-- `ido@example.com` — real account
-- `attacker@example.com` — looks like a leftover test account from earlier rate-limit testing, not yet confirmed as intentional or cleaned up. **Ask about this tomorrow.**
+- All accounts were deleted today at your request (both `ido@example.com`
+  and `idonagel@gmail.com`, plus all their data) before pushing.
+- As of the end of this session, `idonagel@gmail.com` exists again — you
+  must have signed back up on the live site after the wipe. Treat it as
+  your real account unless told otherwise.
+
+## Decisions needed before next implementation
+
+- **R2_MIGRATION.md** (untracked, not yet committed) — a plan to move file
+  storage from Vercel Blob to Cloudflare R2 (better free-tier fit for a
+  mostly-PDF, read-heavy bucket). **Nothing in the app has been touched by
+  this yet — it's a proposal only.** Before implementing it: confirm this
+  is still wanted, decide whether to do the one-time data migration for any
+  files already uploaded under the current account, and confirm the R2
+  credentials/bucket exist. The doc itself lists exactly what would change
+  (`src/lib/blob.ts`, the `/api/files/[...path]` route, env vars) and — just
+  as importantly — what should *not* be introduced (no new upload route, no
+  new table, no presigned-URL scheme replacing the existing ownership
+  check). Read the file in full before starting; don't re-derive the plan
+  from scratch.
 
 ## Known quirks / things to remember
 
-- Git remote: `https://github.com/idonagel308/student-keep.git`, branch `main`. No `gh` CLI installed locally — commits use `git -c user.name=... -c user.email=...` matching the existing repo author (`idonagel308 <idonagel@gmail.com>`) since no global git identity is configured on this machine.
-- Local `.env` holds real secrets (DB, Blob, session secret, invite code) — gitignored correctly, never committed.
-- After any future `git push`, the new deployment will likely land in "Checks Failed" / Staged and need a manual Promote — check Vercel deployments list.
-- Form actions across the app now follow a `useActionState`-based pattern (`{error}` return values, not throws) for anything wired through `ActionForm` or `AuthForm` — keep this pattern for any new forms.
-
-## Todo list for tomorrow
-
-1. **Add admin page to track user count** — a `/admin` route gated to the owner's account, showing total user count and a list of users with signup dates.
-2. **Import and implement Claude Design UI overhaul** — full visual redesign.
-   - Use the `DesignSync` tool (claude_design MCP) to import:
-     `https://claude.ai/design/p/3930fb27-c24c-4798-bd03-245b24e9161b?file=Course+Tracker.dc.html`
-   - Primary file: `Course Tracker.dc.html`
-   - Also read (imported dependencies): `_ds/broadsheet-982715b7-371b-4914-a411-45ed36b147d5/_ds_bundle.js`, `_ds/broadsheet-982715b7-371b-4914-a411-45ed36b147d5/styles.css`, `support.js`
-   - Port the visual design into the existing Next.js app (`src/components/ui.ts`, `globals.css`, and the 5 pages: login, signup, semesters list, semester view, course page).
-   - **Important constraint**: preserve every server action's form `name` attributes exactly — the mutations read `formData.get("name")` etc., and a renamed input breaks saving *silently* (no type error). Port presentation, not the wiring.
+- Git remote: `https://github.com/idonagel308/student-keep.git`, branch
+  `main`. No `gh` CLI installed locally — commits use
+  `git -c user.name=... -c user.email=...` matching the existing repo
+  author (`idonagel308 <idonagel@gmail.com>`) since no global git identity
+  is configured on this machine.
+- Local `.env` holds real secrets (DB, Blob, session secret, invite code) —
+  gitignored correctly, never committed. It points at the **same Neon DB**
+  used by the live production site — local testing writes/deletes real
+  production data, not a separate dev database.
+- Form actions across the app follow a `useActionState`-based pattern
+  (`{error}` return values, not throws) for anything wired through
+  `ActionForm` or `AuthForm` — keep this pattern for any new forms.
+- i18n pattern: every server-component page calls `getLang()` + `t(lang,
+  key)`; client components receive `lang` as a prop threaded down from
+  their server-component parent. New dictionary keys go in
+  `src/lib/i18n/dictionary.ts` (both `en` and `he` — TypeScript won't catch
+  a missing translation, only a missing key).
+- Never create test accounts directly on the live production site
+  (`student-keep.vercel.app`) — use the local dev server for testing
+  (`npm run dev` / the `student-keep-dev` launch config), which hits the
+  same DB, then clean up test accounts via direct SQL afterward.
 
 ## Recommended next-session opening move
 
-Read this file, then just say "continue" or point directly at task #2 (the design import) — everything needed to resume is above.
+Read this file, then ask what's next — there's no pre-committed task list
+left from today's plan (`FULL_FEATURE_BUILD_PLAN.md` is fully done). The
+main open item is the R2 migration decision above, if that's the next
+priority.
