@@ -22,7 +22,9 @@ people you hand the code to yourself.
   currently active, and a 7-day calendar strip showing both at a glance.
 - **Degree overview** — credits-weighted average across every graded course,
   a per-semester breakdown, and a list of graded courses searchable by name
-  or course number.
+  or course number. A course can be graded either with a numeric score or as
+  a plain "Pass" (for pass/fail courses) — a Pass counts its credits toward
+  the degree total without affecting the weighted average.
 - **Semesters and courses** — an optional course number (e.g. a catalog code
   like "10225") shown next to the course name, a pace indicator
   (ahead/behind/on-pace vs. lectures actually scheduled to date), and
