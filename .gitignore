@@ -51,3 +51,6 @@ next-env.d.ts
 
 # local, machine-specific tool permissions
 .claude/settings.local.json
+
+# working notes for picking up between sessions - not meant to be public
+SESSION_SUMMARY.md
