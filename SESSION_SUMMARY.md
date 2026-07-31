@@ -70,22 +70,30 @@ state).
   (155,119 bytes) — the real "maman 11" assignment PDF, uploaded today,
   confirmed working.
 
-## Recommended next-session opening move / remaining cleanup
+## Cleanup: done
 
-The migration is functionally done and verified. What's left is just cleanup,
-not risk:
+- **Vercel Blob store deleted** (user, via dashboard) — R2 is now the only
+  storage backend for this app, in production and locally.
+- **`BLOB_READ_WRITE_TOKEN` removed from Vercel's env vars** (user, via
+  dashboard). Still present in the local, gitignored `.env` — harmless,
+  unused (the fallback branch in `blob.ts` just never triggers since all
+  four R2_* vars are set). No code change needed for either of these.
+- **Re-verified after both removals**: reloaded the live "maman 11" PDF
+  (`/api/files/homework/cms7suf3r000004i50imlipit/4b7b42bf8b6c5921-____11.pdf`)
+  — HTTP 200, correct 2-page Hebrew PDF rendered. Confirms R2 is fully
+  self-sufficient in production with no dependency left on Vercel Blob.
+- The orphaned 9-byte test object in R2
+  (`homework/cms6sfrjw.../real2-...pdf`) was left in place — cosmetic only,
+  no functional impact, delete whenever convenient via the Cloudflare
+  dashboard if desired.
 
-1. **Delete the old Vercel Blob store** (Vercel dashboard → Storage) now that
-   R2 is confirmed working in production. Not urgent, but there's no reason
-   to keep paying into two storage products.
-2. Optionally remove `BLOB_READ_WRITE_TOKEN` from Vercel env vars once the
-   Blob store is deleted — `blob.ts`'s fallback path would then be dead code
-   for this deployment (harmless to leave the code in, since local dev / a
-   future rollback could still use it).
-3. Optionally clean up the orphaned 9-byte test object in R2
-   (`homework/cms6sfrjw.../real2-...pdf`) — cosmetic only.
-4. No other open items from prior sessions — `FULL_FEATURE_BUILD_PLAN.md` and
-   now `R2_MIGRATION.md` are both fully executed.
+## Recommended next-session opening move
+
+No open items from prior sessions — `FULL_FEATURE_BUILD_PLAN.md` and
+`R2_MIGRATION.md` are both fully executed and the R2 cutover is fully
+cleaned up. Full test suite (`npm test`), typecheck, lint, and production
+build all pass as of this session. Next session starts with no backlog —
+ask what's next.
 
 ## Known quirks / things to remember (carried over, still true)
 
