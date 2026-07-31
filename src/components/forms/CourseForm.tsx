@@ -9,6 +9,7 @@ import type { Lang } from "@/lib/i18n/dictionary";
 type CourseValues = {
   id: string;
   name: string;
+  courseNumber: string | null;
   totalLectures: number;
   credits: number | null;
   color: string | null;
@@ -67,15 +68,26 @@ export function CourseForm({
             <div className="space-y-4">
               <input type="hidden" name="semesterId" value={semesterId} />
               {initial && <input type="hidden" name="id" value={initial.id} />}
-              <div className="field">
-                <label className={labelClass}>{t(lang, "courseName")}</label>
-                <input
-                  name="name"
-                  required
-                  defaultValue={initial?.name}
-                  placeholder="e.g. Linear Algebra"
-                  className={inputClass}
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="field" style={{ gridColumn: "span 2" }}>
+                  <label className={labelClass}>{t(lang, "courseName")}</label>
+                  <input
+                    name="name"
+                    required
+                    defaultValue={initial?.name}
+                    placeholder="e.g. Linear Algebra"
+                    className={inputClass}
+                  />
+                </div>
+                <div className="field">
+                  <label className={labelClass}>{t(lang, "courseNumberOptional")}</label>
+                  <input
+                    name="courseNumber"
+                    defaultValue={initial?.courseNumber ?? ""}
+                    placeholder="e.g. 10225"
+                    className={inputClass}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="field">

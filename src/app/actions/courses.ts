@@ -36,6 +36,7 @@ export async function createCourse(
 ): Promise<ActionState> {
   const semesterId = String(formData.get("semesterId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const courseNumber = String(formData.get("courseNumber") ?? "").trim() || null;
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
@@ -63,6 +64,7 @@ export async function createCourse(
     data: {
       semesterId,
       name,
+      courseNumber,
       totalLectures: Math.floor(totalLectures),
       credits,
       color,
@@ -88,6 +90,7 @@ export async function updateCourse(
   const id = String(formData.get("id") ?? "");
   const semesterId = String(formData.get("semesterId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const courseNumber = String(formData.get("courseNumber") ?? "").trim() || null;
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
@@ -146,6 +149,7 @@ export async function updateCourse(
     where: { id },
     data: {
       name,
+      courseNumber,
       totalLectures: target,
       credits,
       color,

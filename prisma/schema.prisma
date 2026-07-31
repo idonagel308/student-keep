@@ -49,6 +49,9 @@ model Course {
   id            String  @id @default(cuid())
   semesterId    String  @map("semester_id")
   name          String
+  /// Catalog/course code, e.g. "10225" or "CS-101". Free-form, optional —
+  /// shown next to the name and searchable on the Degree page.
+  courseNumber  String? @map("course_number")
   totalLectures Int     @map("total_lectures")
   credits       Float?
   color         String?

@@ -201,6 +201,11 @@ export default async function SemesterPage({
                       />
                     )}
                     <span style={{ fontWeight: 600, fontSize: 19 }}>{c.name}</span>
+                    {c.courseNumber && (
+                      <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
+                        {c.courseNumber}
+                      </span>
+                    )}
                   </div>
                   {c.credits != null && (
                     <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "0 0 12px" }}>
@@ -256,6 +261,7 @@ export default async function SemesterPage({
                     initial={{
                       id: c.id,
                       name: c.name,
+                      courseNumber: c.courseNumber,
                       totalLectures: c.totalLectures,
                       credits: c.credits,
                       color: c.color,

@@ -72,6 +72,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
 
     // course detail
     courseName: "Course name",
+    courseNumberOptional: "Course number (optional)",
     totalLectures: "Total lectures",
     creditsOptional: "Credits (optional)",
     dayOfWeekOptional: "Day of week (optional)",
@@ -272,6 +273,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     semesterElapsed: (n) => `${n}% מהסמסטר חלפו`,
 
     courseName: "שם הקורס",
+    courseNumberOptional: "מספר קורס (אופציונלי)",
     totalLectures: "מספר הרצאות",
     creditsOptional: "נקודות זכות (אופציונלי)",
     dayOfWeekOptional: "יום בשבוע (אופציונלי)",

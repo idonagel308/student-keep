@@ -173,6 +173,7 @@ export default async function DegreePage() {
               return {
                 id: c.id,
                 name: c.name,
+                courseNumber: c.courseNumber,
                 semesterName: semester.name,
                 color: c.color,
                 credits: c.credits,

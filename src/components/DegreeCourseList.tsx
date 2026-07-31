@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/i18n/dictionary";
 type DegreeCourse = {
   id: string;
   name: string;
+  courseNumber: string | null;
   semesterName: string;
   color: string | null;
   credits: number | null;
@@ -33,7 +34,7 @@ export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; l
   const q = query.trim().toLowerCase();
 
   const pool = courses.filter(
-    (c) => !q || `${c.name} ${c.semesterName}`.toLowerCase().includes(q)
+    (c) => !q || `${c.name} ${c.courseNumber ?? ""} ${c.semesterName}`.toLowerCase().includes(q)
   );
   const list = q
     ? [...pool].sort((a, b) => a.name.localeCompare(b.name))
@@ -77,7 +78,12 @@ export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; l
               }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "14.5px" }}>{c.name}</div>
+              <div style={{ fontSize: "14.5px" }}>
+                {c.name}
+                {c.courseNumber && (
+                  <span style={{ color: "var(--color-neutral-600)" }}> · {c.courseNumber}</span>
+                )}
+              </div>
               <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
                 {c.semesterName}
                 {c.credits != null ? ` · ${t(lang, "creditsCount", c.credits)}` : ""}

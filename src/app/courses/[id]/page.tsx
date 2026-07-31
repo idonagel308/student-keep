@@ -91,6 +91,11 @@ export default async function CoursePage({
         )}
         <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 8px" }}>{course.name}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {course.courseNumber && (
+            <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
+              {course.courseNumber}
+            </p>
+          )}
           {course.credits != null && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
               {t(lang, "creditsCount", course.credits)}
@@ -106,6 +111,7 @@ export default async function CoursePage({
             initial={{
               id: course.id,
               name: course.name,
+              courseNumber: course.courseNumber,
               totalLectures: course.totalLectures,
               credits: course.credits,
               color: course.color,
