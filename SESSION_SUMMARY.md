@@ -61,7 +61,11 @@ storage design, are in `README.md` now — no need to duplicate them here.
   (`homework/cms6sfrjw.../real2-...pdf`) from earlier dev testing — harmless,
   delete via the Cloudflare dashboard whenever convenient.
 
-**Current live invite code:** `p_ehS3aZa-6R`
+**Invite code:** not written here anymore — this repo is public on GitHub, and
+the old code (committed here in plaintext) was rotated on 2026-07-31 because
+of that. Never put the actual `SIGNUP_INVITE_CODE` value in any committed
+file again, including this one — check Vercel's env vars or your local
+`.env` (gitignored) instead.
 
 ## Recommended next-session opening move
 
