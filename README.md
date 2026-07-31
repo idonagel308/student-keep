@@ -21,10 +21,12 @@ people you hand the code to yourself.
   (including overdue), lectures scheduled this week for whichever semester is
   currently active, and a 7-day calendar strip showing both at a glance.
 - **Degree overview** — credits-weighted average across every graded course,
-  a per-semester breakdown, and a searchable list of graded courses.
-- **Semesters and courses** — a pace indicator (ahead/behind/on-pace vs.
-  lectures actually scheduled to date), and semesters grouped by status
-  (in progress / planned / completed).
+  a per-semester breakdown, and a list of graded courses searchable by name
+  or course number.
+- **Semesters and courses** — an optional course number (e.g. a catalog code
+  like "10225") shown next to the course name, a pace indicator
+  (ahead/behind/on-pace vs. lectures actually scheduled to date), and
+  semesters grouped by status (in progress / planned / completed).
 - **Lectures** — auto-scheduled weekly from the semester's start date, or
   from a specific day of the week if you set one per course (e.g. "this
   course meets Wednesdays"), with per-lecture manual override and optional
