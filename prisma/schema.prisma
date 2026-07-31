@@ -58,8 +58,16 @@ model Course {
   createdAt     DateTime @default(now()) @map("created_at")
 
   /// Final grade, 0-100. Null means "not graded yet" and is excluded from
-  /// GPA math entirely (not treated as a 0).
+  /// GPA math entirely (not treated as a 0). Mutually exclusive with
+  /// passGrade — a course is either numerically graded, marked pass, or
+  /// ungraded, never more than one of those at once.
   examScore Float? @map("exam_score")
+
+  /// Pass/fail alternative to examScore, for courses with no numeric grade
+  /// (e.g. "עובר" / pass-only courses). When true, the course's credits
+  /// count as earned toward the degree total, but it contributes nothing
+  /// to the weighted average — same treatment as an ungraded course there.
+  passGrade Boolean @default(false) @map("pass_grade")
 
   /// 0 (Sunday) - 6 (Saturday), matching JS Date#getDay(). Null means "not
   /// set" — new lectures then fall back to the semester's own start-date

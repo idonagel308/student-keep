@@ -170,19 +170,22 @@ export async function setCourseGrade(
   formData: FormData
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
+  const gradeMode = String(formData.get("gradeMode") ?? "score");
   const examScoreRaw = String(formData.get("examScore") ?? "").trim();
   if (!id) return { error: "Missing course id." };
 
+  const passGrade = gradeMode === "pass";
+
   let examScore: number | null;
   try {
-    examScore = parseExamScore(examScoreRaw);
+    examScore = passGrade ? null : parseExamScore(examScoreRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid grade." };
   }
 
   const course = await assertOwnsCourse(id);
 
-  await prisma.course.update({ where: { id }, data: { examScore } });
+  await prisma.course.update({ where: { id }, data: { examScore, passGrade } });
 
   revalidatePath("/");
   revalidatePath("/semesters");

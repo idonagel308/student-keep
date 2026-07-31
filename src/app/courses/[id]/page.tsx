@@ -126,7 +126,12 @@ export default async function CoursePage({
             confirmMessage={t(lang, "deleteCourseConfirm")}
           />
         </div>
-        <CourseGrade courseId={course.id} examScore={course.examScore} lang={lang} />
+        <CourseGrade
+          courseId={course.id}
+          examScore={course.examScore}
+          passGrade={course.passGrade}
+          lang={lang}
+        />
       </div>
 
       <div

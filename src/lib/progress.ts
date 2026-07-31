@@ -32,8 +32,14 @@ const PASSING_SCORE = 60;
  * zero-credit courses never enter the average, ungraded courses don't
  * either (not treated as a 0), and "credits earned" only counts courses
  * that passed.
+ *
+ * A pass-graded course (passGrade, no numeric examScore — e.g. "עובר")
+ * counts its credits as earned the same as a numeric grade >= 60 would,
+ * but never enters the weighted average — there's no number to weight.
  */
-export function gpaStats(courses: { credits: number | null; examScore: number | null }[]) {
+export function gpaStats(
+  courses: { credits: number | null; examScore: number | null; passGrade: boolean }[]
+) {
   let credits = 0;
   let earned = 0;
   let weightedSum = 0;
@@ -42,7 +48,9 @@ export function gpaStats(courses: { credits: number | null; examScore: number | 
   for (const c of courses) {
     const cr = c.credits ?? 0;
     credits += cr;
-    if (cr > 0 && c.examScore !== null) {
+    if (cr > 0 && c.passGrade) {
+      earned += cr;
+    } else if (cr > 0 && c.examScore !== null) {
       weightedSum += c.examScore * cr;
       gradedCredits += cr;
       if (c.examScore >= PASSING_SCORE) earned += cr;

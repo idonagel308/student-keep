@@ -13,9 +13,10 @@ type DegreeCourse = {
   color: string | null;
   credits: number | null;
   examScore: number | null;
+  passGrade: boolean;
 };
 
-function gradeStyle(examScore: number | null): React.CSSProperties {
+function gradeStyle(examScore: number | null, passGrade: boolean): React.CSSProperties {
   const base: React.CSSProperties = {
     flex: "none",
     fontSize: 12,
@@ -23,6 +24,7 @@ function gradeStyle(examScore: number | null): React.CSSProperties {
     borderRadius: "var(--radius-md)",
     fontFeatureSettings: "'tnum' 1",
   };
+  if (passGrade) return { ...base, background: "var(--color-accent-100)", color: "var(--color-accent-800)" };
   if (examScore === null) return { ...base, color: "var(--color-neutral-500)" };
   return examScore >= 60
     ? { ...base, background: "var(--color-accent-100)", color: "var(--color-accent-800)" }
@@ -39,8 +41,12 @@ export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; l
   const list = q
     ? [...pool].sort((a, b) => a.name.localeCompare(b.name))
     : pool
-        .filter((c) => c.examScore !== null)
-        .sort((a, b) => (b.examScore ?? 0) - (a.examScore ?? 0));
+        .filter((c) => c.examScore !== null || c.passGrade)
+        .sort((a, b) => {
+          const av = a.passGrade ? Infinity : (a.examScore ?? -Infinity);
+          const bv = b.passGrade ? Infinity : (b.examScore ?? -Infinity);
+          return bv - av;
+        });
 
   return (
     <>
@@ -89,7 +95,9 @@ export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; l
                 {c.credits != null ? ` · ${t(lang, "creditsCount", c.credits)}` : ""}
               </div>
             </div>
-            <span style={gradeStyle(c.examScore)}>{c.examScore === null ? "—" : c.examScore}</span>
+            <span style={gradeStyle(c.examScore, c.passGrade)}>
+              {c.passGrade ? t(lang, "passed") : c.examScore === null ? "—" : c.examScore}
+            </span>
           </Link>
         ))}
       </div>

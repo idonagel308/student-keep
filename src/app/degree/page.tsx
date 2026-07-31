@@ -178,6 +178,7 @@ export default async function DegreePage() {
                 color: c.color,
                 credits: c.credits,
                 examScore: c.examScore,
+                passGrade: c.passGrade,
               };
             })}
           />
