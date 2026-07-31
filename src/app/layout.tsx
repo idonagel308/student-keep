@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
-import { Source_Serif_4, Frank_Ruhl_Libre } from "next/font/google";
+import { Source_Serif_4, Noto_Serif_Hebrew } from "next/font/google";
 import "./globals.css";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SettingsTrigger } from "@/components/SettingsTrigger";
@@ -17,10 +17,10 @@ const sourceSerif = Source_Serif_4({
   style: ["normal", "italic"],
 });
 
-// Used for dir="rtl" (Hebrew) — the mock swaps to this serif specifically
-// for RTL rather than reusing Source Serif 4's own Hebrew glyphs.
-const frankRuhlLibre = Frank_Ruhl_Libre({
-  variable: "--font-frank-ruhl",
+// Used for dir="rtl" (Hebrew) — swapped from Frank Ruhl Libre for a
+// cleaner, more contemporary serif with the same full Hebrew coverage.
+const notoSerifHebrew = Noto_Serif_Hebrew({
+  variable: "--font-hebrew-serif",
   subsets: ["latin", "hebrew"],
   weight: ["400", "500", "700"],
 });
@@ -54,7 +54,7 @@ export default async function RootLayout({
     <html
       lang={lang}
       dir={dir}
-      className={`${sourceSerif.variable} ${frankRuhlLibre.variable}`}
+      className={`${sourceSerif.variable} ${notoSerifHebrew.variable}`}
       suppressHydrationWarning
     >
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
