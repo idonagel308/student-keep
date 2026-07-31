@@ -102,6 +102,9 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     upload: "Upload",
     uploading: "Uploading…",
     summary: "Summary",
+    pdfUploadPlaceholder: "Click to upload a PDF",
+    pdfSizeHint: "PDF only, up to 10MB",
+    pdfReplaceHint: "Click to choose a different file",
 
     // homework
     markDone: "Mark complete",
@@ -285,6 +288,9 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     upload: "העלאה",
     uploading: "מעלה…",
     summary: "תקציר",
+    pdfUploadPlaceholder: "לחצו כדי להעלות קובץ PDF",
+    pdfSizeHint: "קובץ PDF בלבד, עד 10MB",
+    pdfReplaceHint: "לחצו כדי לבחור קובץ אחר",
 
     markDone: "סמן כהושלם",
     markNotDone: "סמן כלא הושלם",

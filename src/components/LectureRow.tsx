@@ -9,6 +9,7 @@ import {
   updateLecture,
 } from "@/app/actions/lectures";
 import { LectureForm } from "@/components/forms/LectureForm";
+import { PdfFileInput } from "@/components/forms/PdfFileInput";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
 import { t } from "@/lib/i18n/t";
@@ -98,13 +99,9 @@ export function LectureRow({ lecture, lang }: { lecture: Lecture; lang: Lang }) 
             <>
               <input type="hidden" name="id" value={lecture.id} />
               <input type="hidden" name="courseId" value={lecture.courseId} />
-              <input
-                type="file"
-                name="file"
-                accept="application/pdf"
-                required
-                className="max-w-[180px] text-xs"
-              />
+              <div className="max-w-[220px]">
+                <PdfFileInput name="file" required lang={lang} />
+              </div>
               <button type="submit" disabled={pending} className="btn btn-primary" style={{ fontSize: 12 }}>
                 {pending ? t(lang, "uploading") : t(lang, "upload")}
               </button>

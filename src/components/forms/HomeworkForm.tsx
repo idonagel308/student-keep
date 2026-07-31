@@ -2,6 +2,7 @@
 
 import { Modal } from "@/components/Modal";
 import { ActionForm, type ActionState } from "@/components/ActionForm";
+import { PdfFileInput } from "@/components/forms/PdfFileInput";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
@@ -91,20 +92,11 @@ export function HomeworkForm({
 
               <div className="field">
                 <label className={labelClass}>{t(lang, "assignmentPdfLabel")}</label>
-                <input
-                  type="file"
+                <PdfFileInput
                   name="assignmentFile"
-                  accept="application/pdf"
-                  className="text-sm"
+                  currentFileName={initial?.assignmentFileName}
+                  lang={lang}
                 />
-                {initial?.assignmentFileName && (
-                  <p
-                    className="mt-1 text-xs"
-                    style={{ color: "var(--color-neutral-600)" }}
-                  >
-                    {t(lang, "currentFileNote", initial.assignmentFileName)}
-                  </p>
-                )}
               </div>
 
               <div
@@ -122,20 +114,11 @@ export function HomeworkForm({
                 />
                 <div className="mt-3 field">
                   <label className={labelClass}>{t(lang, "uploadAnswerPdf")}</label>
-                  <input
-                    type="file"
+                  <PdfFileInput
                     name="answerFile"
-                    accept="application/pdf"
-                    className="text-sm"
+                    currentFileName={initial?.answerFileName}
+                    lang={lang}
                   />
-                  {initial?.answerFileName && (
-                    <p
-                      className="mt-1 text-xs"
-                      style={{ color: "var(--color-neutral-600)" }}
-                    >
-                      {t(lang, "currentFileNote", initial.answerFileName)}
-                    </p>
-                  )}
                 </div>
               </div>
 
