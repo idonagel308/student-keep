@@ -8,6 +8,8 @@ import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
+import { WeekCalendar } from "@/components/WeekCalendar";
+import type { WeekCalendarItem } from "@/lib/weekCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +96,30 @@ export default async function WeekPage() {
     }
   }
   lectureRows.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
+
+  // Same rows already computed above, just reshaped for the week-grid view
+  // below — no extra query. Overdue homework (due before weekStart) is
+  // intentionally excluded here; it's already surfaced in the list above.
+  const calendarItems: WeekCalendarItem[] = [
+    ...dueRows
+      .filter((r) => r.dueDate >= weekStart)
+      .map((r) => ({
+        id: r.homeworkId,
+        type: "homework" as const,
+        date: r.dueDate,
+        label: r.name,
+        href: `/courses/${r.courseId}`,
+        color: r.courseColor,
+      })),
+    ...lectureRows.map((l) => ({
+      id: l.lectureId,
+      type: "lecture" as const,
+      date: l.scheduledDate,
+      label: l.title || t(lang, "lectureNumber", l.number),
+      href: `/courses/${l.courseId}`,
+      color: l.courseColor,
+    })),
+  ];
 
   const headline =
     dueRows.length === 0
@@ -292,6 +318,8 @@ export default async function WeekPage() {
           )}
         </section>
       </div>
+
+      <WeekCalendar weekStart={weekStart} items={calendarItems} lang={lang} />
     </div>
   );
 }

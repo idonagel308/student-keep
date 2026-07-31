@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsCourse, assertOwnsSemester } from "@/lib/dal";
+import { weeklyDate, parseDayOfWeek } from "@/lib/courseScheduling";
 import type { ActionState } from "@/components/ActionForm";
 
 // A real course won't have more lectures than this; the cap exists so a
@@ -29,12 +30,6 @@ function parseExamScore(raw: string): number | null {
   return n;
 }
 
-function weeklyDate(start: Date, weekIndex: number): Date {
-  const d = new Date(start);
-  d.setUTCDate(d.getUTCDate() + weekIndex * 7);
-  return d;
-}
-
 export async function createCourse(
   _prevState: ActionState,
   formData: FormData
@@ -44,6 +39,7 @@ export async function createCourse(
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
+  const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
 
   if (!semesterId || !name) {
     return { error: "Course name is required." };
@@ -53,8 +49,10 @@ export async function createCourse(
   }
 
   let credits: number | null;
+  let dayOfWeek: number | null;
   try {
     credits = parseCredits(creditsRaw);
+    dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
@@ -68,10 +66,11 @@ export async function createCourse(
       totalLectures: Math.floor(totalLectures),
       credits,
       color,
+      dayOfWeek,
       lectures: {
         create: Array.from({ length: Math.floor(totalLectures) }, (_, i) => ({
           number: i + 1,
-          scheduledDate: weeklyDate(semester.startDate, i),
+          scheduledDate: weeklyDate(semester.startDate, i, dayOfWeek),
         })),
       },
     },
@@ -92,6 +91,7 @@ export async function updateCourse(
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
+  const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
 
   if (!id || !name) return { error: "Course name is required." };
   if (!Number.isFinite(totalLectures) || totalLectures < 0 || totalLectures > MAX_LECTURES) {
@@ -99,8 +99,10 @@ export async function updateCourse(
   }
 
   let credits: number | null;
+  let dayOfWeek: number | null;
   try {
     credits = parseCredits(creditsRaw);
+    dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
@@ -118,16 +120,20 @@ export async function updateCourse(
   if (target > currentCount) {
     // Continue the weekly cadence from the last existing lecture's date
     // (rather than re-basing from the semester start), so extending a
-    // course doesn't reshuffle dates that may already be hand-edited.
+    // course doesn't reshuffle dates that may already be hand-edited. Only
+    // when there's no existing lecture to anchor to does the day-of-week
+    // picker come into play — from there, +7 days each time preserves
+    // whatever weekday was already set.
     const last = existing[existing.length - 1];
     const anchor = last?.scheduledDate ?? (await assertOwnsSemester(semesterId)).startDate;
     const anchorWeekOffset = last?.scheduledDate ? 1 : 0;
+    const anchorDayOfWeek = last?.scheduledDate ? null : dayOfWeek;
 
     await prisma.lecture.createMany({
       data: Array.from({ length: target - currentCount }, (_, i) => ({
         courseId: id,
         number: currentCount + i + 1,
-        scheduledDate: weeklyDate(anchor, i + anchorWeekOffset),
+        scheduledDate: weeklyDate(anchor, i + anchorWeekOffset, anchorDayOfWeek),
       })),
     });
   } else if (target < currentCount) {
@@ -143,6 +149,7 @@ export async function updateCourse(
       totalLectures: target,
       credits,
       color,
+      dayOfWeek,
     },
   });
 

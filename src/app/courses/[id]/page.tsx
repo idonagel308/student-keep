@@ -109,6 +109,7 @@ export default async function CoursePage({
               totalLectures: course.totalLectures,
               credits: course.credits,
               color: course.color,
+              dayOfWeek: course.dayOfWeek,
             }}
           />
           <DeleteButton

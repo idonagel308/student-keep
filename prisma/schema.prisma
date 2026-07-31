@@ -58,6 +58,13 @@ model Course {
   /// GPA math entirely (not treated as a 0).
   examScore Float? @map("exam_score")
 
+  /// 0 (Sunday) - 6 (Saturday), matching JS Date#getDay(). Null means "not
+  /// set" — new lectures then fall back to the semester's own start-date
+  /// weekday (the original behavior, before this field existed). Changing
+  /// this only affects lectures added after the change; existing
+  /// scheduledDate values are never rewritten.
+  dayOfWeek Int? @map("day_of_week")
+
   semester Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   lectures Lecture[]
   homework Homework[]

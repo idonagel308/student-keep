@@ -12,9 +12,20 @@ type CourseValues = {
   totalLectures: number;
   credits: number | null;
   color: string | null;
+  dayOfWeek: number | null;
 };
 
 const COLORS = ["#6366f1", "#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#ec4899", "#8b5cf6"];
+
+const DAY_OF_WEEK_KEYS = [
+  "daySun",
+  "dayMon",
+  "dayTue",
+  "dayWed",
+  "dayThu",
+  "dayFri",
+  "daySat",
+] as const;
 
 export function CourseForm({
   action,
@@ -89,6 +100,24 @@ export function CourseForm({
                     className={inputClass}
                   />
                 </div>
+              </div>
+              <div className="field">
+                <label className={labelClass}>{t(lang, "dayOfWeekOptional")}</label>
+                <select
+                  name="dayOfWeek"
+                  defaultValue={initial?.dayOfWeek ?? ""}
+                  className={inputClass}
+                >
+                  <option value="">{t(lang, "none")}</option>
+                  {DAY_OF_WEEK_KEYS.map((key, i) => (
+                    <option key={key} value={i}>
+                      {t(lang, key)}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
+                  {t(lang, "dayOfWeekHint")}
+                </p>
               </div>
               <div className="field">
                 <label className={labelClass}>{t(lang, "colorTagOptional")}</label>
