@@ -85,7 +85,7 @@ export async function signup(
 
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { email, passwordHash, name },
+    data: { email, passwordHash, name, hasCompletedOnboarding: false },
   });
 
   await recordAttempt(rateLimitKey, true);

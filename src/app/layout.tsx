@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SettingsTrigger } from "@/components/SettingsTrigger";
 import { NavTabs } from "@/components/NavTabs";
+import { Onboarding } from "@/components/Onboarding";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 import { getCurrentUser } from "@/lib/dal";
@@ -82,6 +83,7 @@ export default async function RootLayout({
         >
           {children}
         </main>
+        {user && !user.hasCompletedOnboarding && <Onboarding lang={lang} />}
       </body>
     </html>
   );

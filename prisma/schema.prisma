@@ -36,10 +36,11 @@ model User {
   googleAccessToken       String?   @map("google_access_token")
   googleAccessTokenExpiry DateTime? @map("google_access_token_expiry")
 
-  /// Independent toggles — either, both, or neither can be on. Only
-  /// meaningful when googleRefreshToken is set.
+  /// Independent toggles — any combination can be on. Only meaningful when
+  /// googleRefreshToken is set.
   syncLecturesToCalendar Boolean @default(false) @map("sync_lectures_to_calendar")
   syncHomeworkToTasks    Boolean @default(false) @map("sync_homework_to_tasks")
+  syncExamsToCalendar    Boolean @default(false) @map("sync_exams_to_calendar")
 
   /// True once the user has finished or skipped the first-run onboarding
   /// walkthrough. Defaults to true so the migration doesn't retroactively
@@ -90,6 +91,16 @@ model Course {
   /// count as earned toward the degree total, but it contributes nothing
   /// to the weighted average — same treatment as an ungraded course there.
   passGrade Boolean @default(false) @map("pass_grade")
+
+  /// Final exam date. Deliberately only settable from the course detail
+  /// page (setCourseGrade), never from the course create/edit form — the
+  /// real date is usually only announced partway through the semester,
+  /// long after the course itself was set up.
+  examDate DateTime? @map("exam_date")
+
+  /// The Google Calendar event id this exam date is mirrored to. Null if
+  /// never synced (sync off, not connected, no examDate, or sync failed).
+  googleExamEventId String? @map("google_exam_event_id")
 
   /// 0 (Sunday) - 6 (Saturday), matching JS Date#getDay(). Null means "not
   /// set" — new lectures then fall back to the semester's own start-date
