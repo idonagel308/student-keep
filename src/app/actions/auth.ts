@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
 import { checkRateLimit, recordAttempt, getClientIp } from "@/lib/rateLimit";
@@ -136,6 +137,12 @@ export async function login(
 
 export async function logout() {
   await deleteSession();
+  // Without this, the browser's client-side Router Cache can keep serving
+  // a stale, already-rendered copy of a page like /signup from earlier in
+  // the session (when it silently redirected to "/" for a logged-in user)
+  // — clicking a <Link> to it after logging out would replay that stale
+  // decision instead of re-checking auth state.
+  revalidatePath("/", "layout");
   redirect("/login");
 }
 
@@ -150,5 +157,6 @@ export async function deleteAccount() {
   const user = await requireUser();
   await prisma.user.delete({ where: { id: user.id } });
   await deleteSession();
+  revalidatePath("/", "layout");
   redirect("/login");
 }
