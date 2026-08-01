@@ -86,7 +86,20 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 export async function deleteSession() {
   const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+  // Not cookieStore.delete(SESSION_COOKIE) — that shorthand builds its
+  // Set-Cookie header without a Secure attribute. Browsers require every
+  // Set-Cookie for a __Host- prefixed name (including deletions) to
+  // include Secure and Path=/ with no Domain, or they silently reject it
+  // outright — so .delete() here would leave the original session cookie
+  // completely intact. Setting the same attributes used in createSession,
+  // just expired, is what actually gets the browser to drop it.
+  cookieStore.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    expires: new Date(0),
+    path: "/",
+  });
 }
 
 export { SESSION_COOKIE };
