@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { createCalendarEvent } from "@/lib/google/calendar";
+import { createCalendarEvent, createExamEvent } from "@/lib/google/calendar";
 import { createTask } from "@/lib/google/tasks";
 
 /**
@@ -56,6 +56,28 @@ export async function backfillHomework(userId: string, accessToken: string): Pro
       await prisma.homework.update({ where: { id: item.id }, data: { googleTaskId: taskId } });
     } catch (err) {
       console.error(`[google backfill] homework ${item.id} failed:`, err);
+    }
+  }
+}
+
+export async function backfillExamDates(userId: string, accessToken: string): Promise<void> {
+  const courses = await prisma.course.findMany({
+    where: {
+      googleExamEventId: null,
+      examDate: { not: null },
+      semester: { userId },
+    },
+  });
+
+  for (const course of courses) {
+    try {
+      const eventId = await createExamEvent(accessToken, {
+        courseName: course.name,
+        examDate: course.examDate!,
+      });
+      await prisma.course.update({ where: { id: course.id }, data: { googleExamEventId: eventId } });
+    } catch (err) {
+      console.error(`[google backfill] exam date for course ${course.id} failed:`, err);
     }
   }
 }

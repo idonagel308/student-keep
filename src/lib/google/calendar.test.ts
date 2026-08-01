@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildEventBody } from "./calendar";
+import { buildEventBody, buildExamEventBody } from "./calendar";
 
 describe("buildEventBody", () => {
   it("uses an all-day date range with an exclusive end date", () => {
@@ -42,5 +42,24 @@ describe("buildEventBody", () => {
     });
     expect(body.start).toEqual({ date: "2026-08-31" });
     expect(body.end).toEqual({ date: "2026-09-01" });
+  });
+});
+
+describe("buildExamEventBody", () => {
+  it("uses an all-day date range with an exclusive end date", () => {
+    const body = buildExamEventBody({
+      courseName: "Calc 2",
+      examDate: new Date("2026-09-14T00:00:00Z"),
+    });
+    expect(body.start).toEqual({ date: "2026-09-14" });
+    expect(body.end).toEqual({ date: "2026-09-15" });
+  });
+
+  it("labels the event as a final exam", () => {
+    const body = buildExamEventBody({
+      courseName: "Calc 2",
+      examDate: new Date("2026-09-14T00:00:00Z"),
+    });
+    expect(body.summary).toBe("Calc 2: Final exam");
   });
 });

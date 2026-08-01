@@ -33,6 +33,20 @@ export function buildEventBody(input: LectureEventInput) {
   };
 }
 
+export type ExamEventInput = {
+  courseName: string;
+  examDate: Date;
+};
+
+export function buildExamEventBody(input: ExamEventInput) {
+  const start = toDateOnly(input.examDate);
+  return {
+    summary: `${input.courseName}: Final exam`,
+    start: { date: start },
+    end: { date: nextDay(start) },
+  };
+}
+
 async function callCalendar(
   accessToken: string,
   method: string,
@@ -49,11 +63,8 @@ async function callCalendar(
   });
 }
 
-export async function createCalendarEvent(
-  accessToken: string,
-  input: LectureEventInput
-): Promise<string> {
-  const res = await callCalendar(accessToken, "POST", "", buildEventBody(input));
+async function createEvent(accessToken: string, body: unknown): Promise<string> {
+  const res = await callCalendar(accessToken, "POST", "", body);
   if (!res.ok) {
     throw new Error(`Google Calendar create failed (${res.status}): ${await res.text()}`);
   }
@@ -61,15 +72,38 @@ export async function createCalendarEvent(
   return json.id as string;
 }
 
+async function updateEvent(accessToken: string, eventId: string, body: unknown): Promise<void> {
+  const res = await callCalendar(accessToken, "PATCH", `/${eventId}`, body);
+  if (!res.ok) {
+    throw new Error(`Google Calendar update failed (${res.status}): ${await res.text()}`);
+  }
+}
+
+export async function createCalendarEvent(
+  accessToken: string,
+  input: LectureEventInput
+): Promise<string> {
+  return createEvent(accessToken, buildEventBody(input));
+}
+
 export async function updateCalendarEvent(
   accessToken: string,
   eventId: string,
   input: LectureEventInput
 ): Promise<void> {
-  const res = await callCalendar(accessToken, "PATCH", `/${eventId}`, buildEventBody(input));
-  if (!res.ok) {
-    throw new Error(`Google Calendar update failed (${res.status}): ${await res.text()}`);
-  }
+  return updateEvent(accessToken, eventId, buildEventBody(input));
+}
+
+export async function createExamEvent(accessToken: string, input: ExamEventInput): Promise<string> {
+  return createEvent(accessToken, buildExamEventBody(input));
+}
+
+export async function updateExamEvent(
+  accessToken: string,
+  eventId: string,
+  input: ExamEventInput
+): Promise<void> {
+  return updateEvent(accessToken, eventId, buildExamEventBody(input));
 }
 
 export async function deleteCalendarEvent(accessToken: string, eventId: string): Promise<void> {

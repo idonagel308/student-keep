@@ -7,7 +7,7 @@ import { assertOwnsCourse, assertOwnsSemester, requireUser } from "@/lib/dal";
 import { weeklyDate, parseDayOfWeek } from "@/lib/courseScheduling";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { backfillLectures } from "@/lib/google/backfill";
-import { deleteCalendarEvent } from "@/lib/google/calendar";
+import { deleteCalendarEvent, createExamEvent, updateExamEvent } from "@/lib/google/calendar";
 import { deleteTask } from "@/lib/google/tasks";
 import type { ActionState } from "@/components/ActionForm";
 
@@ -32,6 +32,15 @@ function parseExamScore(raw: string): number | null {
     throw new Error("Grade must be a number between 0 and 100.");
   }
   return n;
+}
+
+function parseExamDate(raw: string): Date | null {
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("Exam date is not valid.");
+  }
+  return d;
 }
 
 type GoogleUser = {
@@ -220,20 +229,48 @@ export async function setCourseGrade(
   const id = String(formData.get("id") ?? "");
   const gradeMode = String(formData.get("gradeMode") ?? "score");
   const examScoreRaw = String(formData.get("examScore") ?? "").trim();
+  const examDateRaw = String(formData.get("examDate") ?? "").trim();
   if (!id) return { error: "Missing course id." };
 
   const passGrade = gradeMode === "pass";
 
   let examScore: number | null;
+  let examDate: Date | null;
   try {
     examScore = passGrade ? null : parseExamScore(examScoreRaw);
+    examDate = parseExamDate(examDateRaw);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Invalid grade." };
+    return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
+  const user = await requireUser();
   const course = await assertOwnsCourse(id);
 
-  await prisma.course.update({ where: { id }, data: { examScore, passGrade } });
+  await prisma.course.update({ where: { id }, data: { examScore, passGrade, examDate } });
+
+  // Same three-case shape as lecture/homework date sync: date newly set ->
+  // create, still set -> update the existing event, cleared -> delete it.
+  if (user.googleRefreshToken && user.syncExamsToCalendar) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        if (examDate) {
+          const input = { courseName: course.name, examDate };
+          if (course.googleExamEventId) {
+            await updateExamEvent(accessToken, course.googleExamEventId, input);
+          } else {
+            const eventId = await createExamEvent(accessToken, input);
+            await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
+          }
+        } else if (course.googleExamEventId) {
+          await deleteCalendarEvent(accessToken, course.googleExamEventId);
+          await prisma.course.update({ where: { id }, data: { googleExamEventId: null } });
+        }
+      }
+    } catch (err) {
+      console.error("[google] exam date sync failed:", err);
+    }
+  }
 
   revalidatePath("/");
   revalidatePath("/semesters");
@@ -248,9 +285,12 @@ export async function deleteCourse(formData: FormData) {
   if (!id) throw new Error("Missing course id.");
 
   const user = await requireUser();
-  await assertOwnsCourse(id);
+  const courseToDelete = await assertOwnsCourse(id);
 
-  if (user.googleRefreshToken && (user.syncLecturesToCalendar || user.syncHomeworkToTasks)) {
+  if (
+    user.googleRefreshToken &&
+    (user.syncLecturesToCalendar || user.syncHomeworkToTasks || user.syncExamsToCalendar)
+  ) {
     try {
       const accessToken = await getValidAccessToken(user);
       if (accessToken) {
@@ -263,6 +303,9 @@ export async function deleteCourse(formData: FormData) {
         }
         for (const item of homework) {
           if (item.googleTaskId) await deleteTask(accessToken, item.googleTaskId);
+        }
+        if (courseToDelete.googleExamEventId) {
+          await deleteCalendarEvent(accessToken, courseToDelete.googleExamEventId);
         }
       }
     } catch (err) {

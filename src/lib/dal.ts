@@ -33,6 +33,7 @@ export const getCurrentUser = cache(async () => {
       googleAccessTokenExpiry: true,
       syncLecturesToCalendar: true,
       syncHomeworkToTasks: true,
+      syncExamsToCalendar: true,
     },
   });
 

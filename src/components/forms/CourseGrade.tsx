@@ -5,6 +5,7 @@ import { Modal } from "@/components/Modal";
 import { ActionForm } from "@/components/ActionForm";
 import { setCourseGrade } from "@/app/actions/courses";
 import { inputClass, labelClass, btnPrimary, btnSecondary } from "@/components/ui";
+import { formatDate, formatDateInput } from "@/lib/format";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 
@@ -12,16 +13,19 @@ export function CourseGrade({
   courseId,
   examScore,
   passGrade,
+  examDate,
   lang,
 }: {
   courseId: string;
   examScore: number | null;
   passGrade: boolean;
+  examDate: Date | null;
   lang: Lang;
 }) {
   const [gradeMode, setGradeMode] = useState<"score" | "pass">(passGrade ? "pass" : "score");
   const graded = passGrade || examScore !== null;
   const passed = passGrade || (examScore !== null && examScore >= 60);
+  const hasDetails = graded || examDate !== null;
 
   return (
     <div
@@ -46,6 +50,11 @@ export function CourseGrade({
         >
           {t(lang, "finalExam")}
         </div>
+        {examDate && (
+          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginBottom: 4 }}>
+            {formatDate(examDate)}
+          </div>
+        )}
         <div
           style={{
             fontSize: passGrade ? 24 : 38,
@@ -65,10 +74,10 @@ export function CourseGrade({
       </div>
       <Modal
         closeLabel={t(lang, "close")}
-        title={graded ? t(lang, "editGrade") : t(lang, "enterGrade")}
+        title={hasDetails ? t(lang, "editGrade") : t(lang, "enterGrade")}
         trigger={(open) => (
           <button type="button" onClick={open} className="btn btn-secondary" style={{ fontSize: "12.5px" }}>
-            {graded ? t(lang, "editGrade") : t(lang, "enterGrade")}
+            {hasDetails ? t(lang, "editGrade") : t(lang, "enterGrade")}
           </button>
         )}
       >
@@ -77,6 +86,15 @@ export function CourseGrade({
             {(pending) => (
               <div className="space-y-4">
                 <input type="hidden" name="id" value={courseId} />
+                <div className="field">
+                  <label className={labelClass}>{t(lang, "examDateLabel")}</label>
+                  <input
+                    type="date"
+                    name="examDate"
+                    defaultValue={formatDateInput(examDate)}
+                    className={inputClass}
+                  />
+                </div>
                 <div className="field">
                   <label className={labelClass}>{t(lang, "gradeTypeLabel")}</label>
                   <div className="flex flex-wrap items-center gap-4">

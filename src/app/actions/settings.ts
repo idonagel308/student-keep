@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { getValidAccessToken } from "@/lib/google/auth";
-import { backfillLectures, backfillHomework } from "@/lib/google/backfill";
+import { backfillLectures, backfillHomework, backfillExamDates } from "@/lib/google/backfill";
 import type { ActionState } from "@/components/ActionForm";
 
 export async function setLanguage(formData: FormData) {
@@ -72,20 +72,27 @@ export async function setGoogleSyncPreferences(
 
   const nextLectures = formData.has("syncLectures");
   const nextHomework = formData.has("syncHomework");
+  const nextExams = formData.has("syncExams");
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { syncLecturesToCalendar: nextLectures, syncHomeworkToTasks: nextHomework },
+    data: {
+      syncLecturesToCalendar: nextLectures,
+      syncHomeworkToTasks: nextHomework,
+      syncExamsToCalendar: nextExams,
+    },
   });
 
   try {
     const turningLecturesOn = nextLectures && !user.syncLecturesToCalendar;
     const turningHomeworkOn = nextHomework && !user.syncHomeworkToTasks;
-    if (turningLecturesOn || turningHomeworkOn) {
+    const turningExamsOn = nextExams && !user.syncExamsToCalendar;
+    if (turningLecturesOn || turningHomeworkOn || turningExamsOn) {
       const accessToken = await getValidAccessToken(user);
       if (accessToken) {
         if (turningLecturesOn) await backfillLectures(user.id, accessToken);
         if (turningHomeworkOn) await backfillHomework(user.id, accessToken);
+        if (turningExamsOn) await backfillExamDates(user.id, accessToken);
       }
     }
   } catch (err) {
@@ -111,6 +118,7 @@ export async function disconnectGoogleCalendar() {
       googleAccessTokenExpiry: null,
       syncLecturesToCalendar: false,
       syncHomeworkToTasks: false,
+      syncExamsToCalendar: false,
     },
   });
 

@@ -130,6 +130,7 @@ export default async function CoursePage({
           courseId={course.id}
           examScore={course.examScore}
           passGrade={course.passGrade}
+          examDate={course.examDate}
           lang={lang}
         />
       </div>

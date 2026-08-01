@@ -16,6 +16,7 @@ export async function SettingsTrigger({ lang }: { lang: Lang }) {
         connected: !!user.googleRefreshToken,
         syncLectures: user.syncLecturesToCalendar,
         syncHomework: user.syncHomeworkToTasks,
+        syncExams: user.syncExamsToCalendar,
       }}
     />
   );

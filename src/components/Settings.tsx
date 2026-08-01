@@ -38,7 +38,7 @@ export function Settings({
   user: { name: string | null; email: string };
   degreeName: string | null;
   creditsRequired: number | null;
-  google: { connected: boolean; syncLectures: boolean; syncHomework: boolean };
+  google: { connected: boolean; syncLectures: boolean; syncHomework: boolean; syncExams: boolean };
 }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -210,6 +210,10 @@ export function Settings({
                       <label className="flex items-center gap-2 text-sm">
                         <input type="checkbox" name="syncHomework" defaultChecked={google.syncHomework} />
                         {t(lang, "syncHomeworkLabel")}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="syncExams" defaultChecked={google.syncExams} />
+                        {t(lang, "syncExamsLabel")}
                       </label>
                       <button type="submit" disabled={pending} className={`${btnPrimary} btn-block`} style={{ marginTop: 4 }}>
                         {pending ? t(lang, "saving") : t(lang, "save")}
