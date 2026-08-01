@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertOwnsCourse, assertOwnsSemester } from "@/lib/dal";
+import { assertOwnsCourse, assertOwnsSemester, requireUser } from "@/lib/dal";
 import { weeklyDate, parseDayOfWeek } from "@/lib/courseScheduling";
+import { getValidAccessToken } from "@/lib/google/auth";
+import { backfillLectures } from "@/lib/google/backfill";
+import { deleteCalendarEvent } from "@/lib/google/calendar";
+import { deleteTask } from "@/lib/google/tasks";
 import type { ActionState } from "@/components/ActionForm";
 
 // A real course won't have more lectures than this; the cap exists so a
@@ -28,6 +32,30 @@ function parseExamScore(raw: string): number | null {
     throw new Error("Grade must be a number between 0 and 100.");
   }
   return n;
+}
+
+type GoogleUser = {
+  id: string;
+  googleRefreshToken: string | null;
+  googleAccessToken: string | null;
+  googleAccessTokenExpiry: Date | null;
+  syncLecturesToCalendar: boolean;
+};
+
+/**
+ * Every calendar/task call here is deliberately swallowed on failure —
+ * sync is a nice-to-have layered on top of the actual feature (tracking
+ * courses/lectures). The core save must succeed regardless of whether
+ * Google's API is reachable, the token is stale, or access was revoked.
+ */
+async function syncNewLecturesIfEnabled(user: GoogleUser) {
+  if (!user.googleRefreshToken || !user.syncLecturesToCalendar) return;
+  try {
+    const accessToken = await getValidAccessToken(user);
+    if (accessToken) await backfillLectures(user.id, accessToken);
+  } catch (err) {
+    console.error("[google] lecture sync failed:", err);
+  }
 }
 
 export async function createCourse(
@@ -58,6 +86,7 @@ export async function createCourse(
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
+  const user = await requireUser();
   const semester = await assertOwnsSemester(semesterId);
 
   await prisma.course.create({
@@ -77,6 +106,8 @@ export async function createCourse(
       },
     },
   });
+
+  await syncNewLecturesIfEnabled(user);
 
   revalidatePath("/");
   revalidatePath("/semesters");
@@ -110,6 +141,7 @@ export async function updateCourse(
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
+  const user = await requireUser();
   await assertOwnsCourse(id);
 
   const target = Math.floor(totalLectures);
@@ -139,10 +171,26 @@ export async function updateCourse(
         scheduledDate: weeklyDate(anchor, i + anchorWeekOffset, anchorDayOfWeek),
       })),
     });
+
+    await syncNewLecturesIfEnabled(user);
   } else if (target < currentCount) {
     // Remove the highest-numbered lectures beyond the new total.
-    const toRemove = existing.slice(target).map((l) => l.id);
-    await prisma.lecture.deleteMany({ where: { id: { in: toRemove } } });
+    const toRemove = existing.slice(target);
+
+    if (user.googleRefreshToken && user.syncLecturesToCalendar) {
+      try {
+        const accessToken = await getValidAccessToken(user);
+        if (accessToken) {
+          for (const lecture of toRemove) {
+            if (lecture.googleEventId) await deleteCalendarEvent(accessToken, lecture.googleEventId);
+          }
+        }
+      } catch (err) {
+        console.error("[google] lecture event cleanup failed:", err);
+      }
+    }
+
+    await prisma.lecture.deleteMany({ where: { id: { in: toRemove.map((l) => l.id) } } });
   }
 
   await prisma.course.update({
@@ -199,7 +247,29 @@ export async function deleteCourse(formData: FormData) {
   const semesterId = String(formData.get("semesterId") ?? "");
   if (!id) throw new Error("Missing course id.");
 
+  const user = await requireUser();
   await assertOwnsCourse(id);
+
+  if (user.googleRefreshToken && (user.syncLecturesToCalendar || user.syncHomeworkToTasks)) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        const [lectures, homework] = await Promise.all([
+          prisma.lecture.findMany({ where: { courseId: id, googleEventId: { not: null } } }),
+          prisma.homework.findMany({ where: { courseId: id, googleTaskId: { not: null } } }),
+        ]);
+        for (const lecture of lectures) {
+          if (lecture.googleEventId) await deleteCalendarEvent(accessToken, lecture.googleEventId);
+        }
+        for (const item of homework) {
+          if (item.googleTaskId) await deleteTask(accessToken, item.googleTaskId);
+        }
+      }
+    } catch (err) {
+      console.error("[google] course delete cleanup failed:", err);
+    }
+  }
+
   await prisma.course.delete({ where: { id } });
 
   revalidatePath("/");

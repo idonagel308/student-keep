@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
-import { assertOwnsLecture, assertOwnsCourse } from "@/lib/dal";
+import { assertOwnsLecture, assertOwnsCourse, requireUser } from "@/lib/dal";
+import { getValidAccessToken } from "@/lib/google/auth";
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google/calendar";
 import type { ActionState } from "@/components/ActionForm";
 
 function parseDate(raw: string): Date | null {
@@ -49,8 +51,37 @@ export async function updateLecture(
   }
 
   const lecture = await assertOwnsLecture(id);
+  const user = await requireUser();
 
   await prisma.lecture.update({ where: { id }, data: { title, scheduledDate } });
+
+  // Three cases, same shape as homework's due-date sync: date newly set ->
+  // create, date still set -> update the existing event, date cleared ->
+  // delete it. Swallowed on failure — sync is layered on top of the save,
+  // never blocks it.
+  if (user.googleRefreshToken && user.syncLecturesToCalendar) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        if (scheduledDate) {
+          const course = await prisma.course.findUniqueOrThrow({ where: { id: lecture.courseId } });
+          const input = { courseName: course.name, number: lecture.number, title, scheduledDate };
+          if (lecture.googleEventId) {
+            await updateCalendarEvent(accessToken, lecture.googleEventId, input);
+          } else {
+            const eventId = await createCalendarEvent(accessToken, input);
+            await prisma.lecture.update({ where: { id }, data: { googleEventId: eventId } });
+          }
+        } else if (lecture.googleEventId) {
+          await deleteCalendarEvent(accessToken, lecture.googleEventId);
+          await prisma.lecture.update({ where: { id }, data: { googleEventId: null } });
+        }
+      }
+    } catch (err) {
+      console.error("[google] lecture sync failed:", err);
+    }
+  }
+
   revalidatePath(`/courses/${lecture.courseId}`);
   revalidatePath("/");
 }
@@ -69,20 +100,43 @@ export async function scheduleLecturesWeekly(formData: FormData) {
   const start = new Date(`${startDateRaw}T12:00:00`);
   if (Number.isNaN(start.getTime())) throw new Error("Invalid date.");
 
-  await assertOwnsCourse(courseId);
+  const user = await requireUser();
+  const course = await assertOwnsCourse(courseId);
 
   const lectures = await prisma.lecture.findMany({
     where: { courseId },
     orderBy: { number: "asc" },
   });
 
+  const dates = lectures.map((_, i) => {
+    const d = new Date(start);
+    d.setUTCDate(d.getUTCDate() + i * 7);
+    return d;
+  });
+
   await prisma.$transaction(
-    lectures.map((l, i) => {
-      const d = new Date(start);
-      d.setUTCDate(d.getUTCDate() + i * 7);
-      return prisma.lecture.update({ where: { id: l.id }, data: { scheduledDate: d } });
-    })
+    lectures.map((l, i) => prisma.lecture.update({ where: { id: l.id }, data: { scheduledDate: dates[i] } }))
   );
+
+  if (user.googleRefreshToken && user.syncLecturesToCalendar) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        for (let i = 0; i < lectures.length; i++) {
+          const l = lectures[i];
+          const input = { courseName: course.name, number: l.number, title: l.title, scheduledDate: dates[i] };
+          if (l.googleEventId) {
+            await updateCalendarEvent(accessToken, l.googleEventId, input);
+          } else {
+            const eventId = await createCalendarEvent(accessToken, input);
+            await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: eventId } });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[google] weekly reschedule sync failed:", err);
+    }
+  }
 
   revalidatePath(`/courses/${courseId}`);
   revalidatePath("/");

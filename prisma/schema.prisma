@@ -25,6 +25,28 @@ model User {
   /// Degree page total credits target. Falls back to 120 if unset.
   creditsRequired Float? @map("credits_required")
 
+  /// Google's long-lived refresh token, used to mint short-lived access
+  /// tokens on demand. Null means "not connected." Same trust boundary as
+  /// passwordHash — the DB itself is the trust perimeter here, same as
+  /// every other secret in this schema; not encrypted at rest.
+  googleRefreshToken String? @map("google_refresh_token")
+  /// Cached short-lived access token + its expiry, so most syncs don't
+  /// need a token-refresh round trip first. Both null when disconnected or
+  /// never fetched yet.
+  googleAccessToken       String?   @map("google_access_token")
+  googleAccessTokenExpiry DateTime? @map("google_access_token_expiry")
+
+  /// Independent toggles — either, both, or neither can be on. Only
+  /// meaningful when googleRefreshToken is set.
+  syncLecturesToCalendar Boolean @default(false) @map("sync_lectures_to_calendar")
+  syncHomeworkToTasks    Boolean @default(false) @map("sync_homework_to_tasks")
+
+  /// True once the user has finished or skipped the first-run onboarding
+  /// walkthrough. Defaults to true so the migration doesn't retroactively
+  /// show it to existing users; signup explicitly sets it false for new
+  /// accounts.
+  hasCompletedOnboarding Boolean @default(true) @map("has_completed_onboarding")
+
   semesters Semester[]
 
   @@map("users")
@@ -99,6 +121,12 @@ model Lecture {
   /// both the Pace indicator and the "lectures this week" list.
   scheduledDate DateTime? @map("scheduled_date")
 
+  /// The Google Calendar event id this lecture is mirrored to, so an edit
+  /// or delete can target the right event instead of creating duplicates.
+  /// Null if never synced (sync off, not connected, no scheduledDate yet,
+  /// or sync failed).
+  googleEventId String? @map("google_event_id")
+
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, number])
@@ -133,6 +161,10 @@ model Homework {
   answerFileName    String?   @map("answer_file_name")
   completed         Boolean   @default(false)
   createdAt         DateTime  @default(now()) @map("created_at")
+
+  /// The Google Tasks task id this homework is mirrored to. Null if never
+  /// synced (sync off, not connected, no dueDate, or sync failed).
+  googleTaskId String? @map("google_task_id")
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

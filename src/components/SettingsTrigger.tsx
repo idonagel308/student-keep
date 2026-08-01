@@ -12,6 +12,11 @@ export async function SettingsTrigger({ lang }: { lang: Lang }) {
       user={{ name: user.name, email: user.email }}
       degreeName={user.degreeName}
       creditsRequired={user.creditsRequired}
+      google={{
+        connected: !!user.googleRefreshToken,
+        syncLectures: user.syncLecturesToCalendar,
+        syncHomework: user.syncHomeworkToTasks,
+      }}
     />
   );
 }

@@ -27,6 +27,12 @@ export const getCurrentUser = cache(async () => {
       tokenVersion: true,
       degreeName: true,
       creditsRequired: true,
+      hasCompletedOnboarding: true,
+      googleRefreshToken: true,
+      googleAccessToken: true,
+      googleAccessTokenExpiry: true,
+      syncLecturesToCalendar: true,
+      syncHomeworkToTasks: true,
     },
   });
 

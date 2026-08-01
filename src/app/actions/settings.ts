@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
+import { getValidAccessToken } from "@/lib/google/auth";
+import { backfillLectures, backfillHomework } from "@/lib/google/backfill";
 import type { ActionState } from "@/components/ActionForm";
 
 export async function setLanguage(formData: FormData) {
@@ -52,5 +54,65 @@ export async function setDegreeSettings(
   });
 
   revalidatePath("/degree");
+  revalidatePath("/");
+}
+
+/**
+ * Updates which resources sync to Google, and backfills anything already
+ * in the app the first time a toggle flips from off to on. Backfill
+ * failures are logged, not surfaced — the preference is already saved
+ * either way, and sync catches up on the next create/edit regardless.
+ */
+export async function setGoogleSyncPreferences(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const user = await requireUser();
+  if (!user.googleRefreshToken) return { error: "Connect Google first." };
+
+  const nextLectures = formData.has("syncLectures");
+  const nextHomework = formData.has("syncHomework");
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { syncLecturesToCalendar: nextLectures, syncHomeworkToTasks: nextHomework },
+  });
+
+  try {
+    const turningLecturesOn = nextLectures && !user.syncLecturesToCalendar;
+    const turningHomeworkOn = nextHomework && !user.syncHomeworkToTasks;
+    if (turningLecturesOn || turningHomeworkOn) {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        if (turningLecturesOn) await backfillLectures(user.id, accessToken);
+        if (turningHomeworkOn) await backfillHomework(user.id, accessToken);
+      }
+    }
+  } catch (err) {
+    console.error("[google] backfill on toggle failed:", err);
+  }
+
+  revalidatePath("/");
+}
+
+/**
+ * Clears the connection. Existing googleEventId/googleTaskId values on
+ * lectures/homework are left as-is (harmless orphaned references) rather
+ * than cleaned up from Google — reconnecting later just mints new ones.
+ */
+export async function disconnectGoogleCalendar() {
+  const user = await requireUser();
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      googleRefreshToken: null,
+      googleAccessToken: null,
+      googleAccessTokenExpiry: null,
+      syncLecturesToCalendar: false,
+      syncHomeworkToTasks: false,
+    },
+  });
+
   revalidatePath("/");
 }

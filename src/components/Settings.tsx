@@ -5,7 +5,12 @@ import { Modal } from "@/components/Modal";
 import { ActionForm } from "@/components/ActionForm";
 import { logout, deleteAccount } from "@/app/actions/auth";
 import { DeleteButton } from "@/components/DeleteButton";
-import { setLanguage, setDegreeSettings } from "@/app/actions/settings";
+import {
+  setLanguage,
+  setDegreeSettings,
+  setGoogleSyncPreferences,
+  disconnectGoogleCalendar,
+} from "@/app/actions/settings";
 import { inputClass, labelClass, btnPrimary } from "@/components/ui";
 import { GearIcon, LogoutIcon } from "@/components/icons";
 import { t } from "@/lib/i18n/t";
@@ -27,11 +32,13 @@ export function Settings({
   user,
   degreeName,
   creditsRequired,
+  google,
 }: {
   lang: Lang;
   user: { name: string | null; email: string };
   degreeName: string | null;
   creditsRequired: number | null;
+  google: { connected: boolean; syncLectures: boolean; syncHomework: boolean };
 }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -164,6 +171,59 @@ export function Settings({
             <p style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", margin: "10px 0 0", lineHeight: 1.5 }}>
               {t(lang, "degreeSettingsNote")}
             </p>
+          </div>
+
+          {/* Google Calendar / Tasks */}
+          <div>
+            <div
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-accent)",
+                marginBottom: 10,
+              }}
+            >
+              {t(lang, "googleSyncLabel")}
+            </div>
+            {!google.connected ? (
+              <>
+                <a href="/api/google/connect" className={`${btnPrimary} btn-block`} style={{ textDecoration: "none" }}>
+                  {t(lang, "connectGoogle")}
+                </a>
+                <p style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", margin: "10px 0 0", lineHeight: 1.5 }}>
+                  {t(lang, "googleSyncNote")}
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: "12.5px", color: "var(--color-accent-700)", margin: "0 0 12px" }}>
+                  {t(lang, "googleConnected")}
+                </p>
+                <ActionForm action={setGoogleSyncPreferences} resetOnSuccess={false}>
+                  {(pending) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="syncLectures" defaultChecked={google.syncLectures} />
+                        {t(lang, "syncLecturesLabel")}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="syncHomework" defaultChecked={google.syncHomework} />
+                        {t(lang, "syncHomeworkLabel")}
+                      </label>
+                      <button type="submit" disabled={pending} className={`${btnPrimary} btn-block`} style={{ marginTop: 4 }}>
+                        {pending ? t(lang, "saving") : t(lang, "save")}
+                      </button>
+                    </div>
+                  )}
+                </ActionForm>
+                <form action={disconnectGoogleCalendar}>
+                  <button type="submit" className="btn btn-secondary btn-block" style={{ marginTop: 8 }}>
+                    {t(lang, "disconnectGoogle")}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
 
           {/* Account */}
