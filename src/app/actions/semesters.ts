@@ -4,15 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsSemester, requireUser } from "@/lib/dal";
+import { parseSemesterDates } from "@/lib/semesterDates";
 import type { ActionState } from "@/components/ActionForm";
-
-function parseDate(raw: string, label: string): Date {
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) {
-    throw new Error(`${label} is not a valid date.`);
-  }
-  return d;
-}
 
 export async function createSemester(
   _prevState: ActionState,
@@ -29,8 +22,7 @@ export async function createSemester(
 
   let startDate: Date, endDate: Date;
   try {
-    startDate = parseDate(startDateRaw, "Start date");
-    endDate = parseDate(endDateRaw, "End date");
+    ({ startDate, endDate } = parseSemesterDates(startDateRaw, endDateRaw));
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid date." };
   }
@@ -63,8 +55,7 @@ export async function updateSemester(
 
   let startDate: Date, endDate: Date;
   try {
-    startDate = parseDate(startDateRaw, "Start date");
-    endDate = parseDate(endDateRaw, "End date");
+    ({ startDate, endDate } = parseSemesterDates(startDateRaw, endDateRaw));
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid date." };
   }
