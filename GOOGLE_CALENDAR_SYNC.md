@@ -14,14 +14,19 @@ gets their own connection, with two independent choices.
 Any signed-in user can connect their own Google account from Settings. Once
 connected, two independent toggles control what syncs:
 
-- **Lectures → Google Calendar events.** Each lecture becomes a timed
-  calendar event on its `scheduledDate`.
-- **Assignments (homework) → Google Tasks.** Each homework item becomes a
-  task with a due date. Marking homework complete in the app marks the
-  matching task complete in Google Tasks too — Tasks has a real
-  completed/not-completed state, unlike a calendar event, which is why
-  homework maps to Tasks and lectures map to Calendar rather than everything
-  going to one or the other.
+- **Lectures → Google Calendar events.** Each lecture becomes an all-day
+  event on its `scheduledDate`.
+- **Assignments (homework) → Google Tasks.** Each homework item with a due
+  date becomes a task with that due date.
+
+Google Tasks items show up directly inside the Google Calendar UI (a
+"Tasks" toggle in Calendar's own sidebar shows them inline in day/week
+view, with a checkbox) — so this still means everything lands in one place
+on your calendar, and there's no need to enter a due date twice across two
+separate Google products. The reason homework maps to Tasks instead of
+another Calendar event: Tasks has a real completed/not-completed state a
+plain event doesn't, which fits "did I finish this assignment" better than
+a time-block does.
 
 **One-way sync**: the app writes to Google; Google is never read back into
 the app. Editing or completing the event/task directly in Google has no
