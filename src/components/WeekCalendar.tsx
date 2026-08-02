@@ -7,11 +7,11 @@ import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 import { buildWeekDays, type WeekCalendarItem } from "@/lib/weekCalendar";
 
-// weekStart passed in from page.tsx is always the Monday of the current
-// week (date-fns startOfWeek(now, { weekStartsOn: 1 })) - this order must
-// match that, not calendar-index order (which starts Sunday), or every
-// label is off by however many days the two conventions disagree by.
-const DAY_KEYS = ["dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat", "daySun"] as const;
+// weekStart passed in from page.tsx is always the Sunday of the current
+// week (date-fns startOfWeek(now, { weekStartsOn: 0 })) - this order must
+// match that or every label is off by however many days the two
+// conventions disagree by.
+const DAY_KEYS = ["daySun", "dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat"] as const;
 
 const VISIBLE_ITEMS_PER_DAY = 2;
 

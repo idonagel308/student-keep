@@ -47,8 +47,8 @@ export default async function WeekPage() {
   });
 
   const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
 
   // "This week" is scoped to whichever semester is currently in progress —
   // due-homework spans every semester (below), but the lecture schedule
@@ -161,7 +161,7 @@ export default async function WeekPage() {
         <section>
           <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>{t(lang, "dueThisWeek")}</h2>
           <p style={{ fontSize: "12.5px", color: "var(--color-neutral-600)", margin: "0 0 20px" }}>
-            {overdueCount > 0 ? t(lang, "overdueFirst") : t(lang, "bySunday")}
+            {overdueCount > 0 ? t(lang, "overdueFirst") : t(lang, "byEndOfWeek")}
           </p>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {dueRows.map((r) => (
