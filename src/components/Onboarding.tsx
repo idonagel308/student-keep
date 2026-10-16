@@ -21,6 +21,8 @@ export function Onboarding({ lang }: { lang: Lang }) {
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
+    // One-time client-mount flag for createPortal (no DOM on the server) — no event to subscribe to instead.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
