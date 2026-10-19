@@ -53,4 +53,15 @@ describe("buildWeekDays", () => {
     const days = buildWeekDays(weekStart, items);
     expect(days[2].items).toHaveLength(4);
   });
+
+  it("orders a day's items by clock time, with untimed items last", () => {
+    const wed = new Date(2026, 6, 29);
+    const days = buildWeekDays(weekStart, [
+      item({ id: "hw", type: "homework", date: wed }),
+      item({ id: "late", date: wed, time: "14:00" }),
+      item({ id: "early", date: wed, time: "08:30" }),
+      item({ id: "none", date: wed }),
+    ]);
+    expect(days[2].items.map((i) => i.id)).toEqual(["early", "late", "hw", "none"]);
+  });
 });

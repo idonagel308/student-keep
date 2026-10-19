@@ -31,8 +31,12 @@ people you hand the code to yourself.
   semesters grouped by status (in progress / planned / completed).
 - **Lectures** — auto-scheduled weekly from the semester's start date, or
   from a specific day of the week if you set one per course (e.g. "this
-  course meets Wednesdays"), with per-lecture manual override and optional
-  PDF summary uploads.
+  course meets Wednesdays"), every week or every two weeks, with per-lecture
+  manual override and optional PDF summary uploads. A course can have a usual
+  lecture time (e.g. 10:00–12:00) shared by all its lectures, and any single
+  lecture can override it. Google Calendar events are timed when a time is set
+  (Asia/Jerusalem by default; set `GOOGLE_EVENT_TIMEZONE` to change it, 1 hour
+  long if no end time is given).
 - **Homework** — due dates, an assignment PDF, and your own answer as typed
   text or an uploaded PDF.
 - **Settings** — light/dark appearance, English/Hebrew language (Hebrew

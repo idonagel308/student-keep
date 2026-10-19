@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 import { WeekCalendar } from "@/components/WeekCalendar";
+import { formatTimeRange, resolveLectureTime, timeToMinutes } from "@/lib/lectureTime";
 import type { WeekCalendarItem } from "@/lib/weekCalendar";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,9 @@ type LectureRow = {
   title: string | null;
   watched: boolean;
   scheduledDate: Date;
+  /** Effective start time ("HH:MM") and the formatted range for display. */
+  startTime: string | null;
+  timeLabel: string;
   watchedCount: number;
   totalCount: number;
 };
@@ -80,6 +84,10 @@ export default async function WeekPage() {
       const watchedCount = c.lectures.filter((l) => l.watched).length;
       for (const l of c.lectures) {
         if (!l.scheduledDate || l.scheduledDate < weekStart || l.scheduledDate > weekEnd) continue;
+        const time = resolveLectureTime(
+          { startTime: l.startTime, endTime: l.endTime },
+          { startTime: c.lectureStartTime, endTime: c.lectureEndTime }
+        );
         lectureRows.push({
           courseId: c.id,
           courseName: c.name,
@@ -89,13 +97,21 @@ export default async function WeekPage() {
           title: l.title,
           watched: l.watched,
           scheduledDate: l.scheduledDate,
+          startTime: time.startTime,
+          timeLabel: formatTimeRange(time),
           watchedCount,
           totalCount: c.lectures.length,
         });
       }
     }
   }
-  lectureRows.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
+  lectureRows.sort(
+    (a, b) =>
+      a.scheduledDate.getTime() - b.scheduledDate.getTime() ||
+      // Same day: earlier lecture first, lectures with no time last.
+      (a.startTime ? timeToMinutes(a.startTime) : Infinity) -
+        (b.startTime ? timeToMinutes(b.startTime) : Infinity)
+  );
 
   // Same rows already computed above, just reshaped for the week-grid view
   // below — no extra query. Overdue homework (due before weekStart) is
@@ -116,6 +132,7 @@ export default async function WeekPage() {
       type: "lecture" as const,
       date: l.scheduledDate,
       label: l.title || t(lang, "lectureNumber", l.number),
+      time: l.startTime,
       href: `/courses/${l.courseId}`,
       color: l.courseColor,
     })),
@@ -277,6 +294,20 @@ export default async function WeekPage() {
                     <span style={{ display: "block", fontSize: "14.5px", marginTop: 4 }}>
                       {l.title || t(lang, "lectureNumber", l.number)}
                     </span>
+                    {l.timeLabel && (
+                      <span
+                        dir="ltr"
+                        style={{
+                          display: "block",
+                          fontSize: "11.5px",
+                          color: "var(--color-neutral-600)",
+                          marginTop: 2,
+                          fontFeatureSettings: "'tnum' 1",
+                        }}
+                      >
+                        {l.timeLabel}
+                      </span>
+                    )}
                   </Link>
                   <span
                     style={{

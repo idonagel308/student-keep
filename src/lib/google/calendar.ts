@@ -1,3 +1,5 @@
+import { minutesToTime, timeToMinutes } from "../lectureTime";
+
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
 /** YYYY-MM-DD in UTC — all-day events use a date, not a dateTime, so
@@ -12,25 +14,82 @@ function nextDay(dateOnly: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Lecture times are wall-clock "HH:MM" with no timezone of their own, so
+// Google needs one to place a timed event. Defaults to Israel time (where
+// this app's users are); override with GOOGLE_EVENT_TIMEZONE (an IANA name
+// like "Europe/London") if that ever changes.
+const DEFAULT_EVENT_TIME_ZONE = "Asia/Jerusalem";
+
+export function getEventTimeZone(): string {
+  return process.env.GOOGLE_EVENT_TIMEZONE || DEFAULT_EVENT_TIME_ZONE;
+}
+
+// A lecture with a start time but no end time still needs an end for
+// Google; an hour is a neutral placeholder, not something the app claims.
+const DEFAULT_LECTURE_MINUTES = 60;
+
 export type LectureEventInput = {
   courseName: string;
   number: number;
   title: string | null;
   scheduledDate: Date;
+  /** Effective time (lecture override already resolved against the course). */
+  startTime?: string | null;
+  endTime?: string | null;
 };
 
-export function buildEventBody(input: LectureEventInput) {
-  const start = toDateOnly(input.scheduledDate);
+type EventDateTime = {
+  date?: string | null;
+  dateTime?: string | null;
+  timeZone?: string | null;
+};
+
+export type EventBody = {
+  summary: string;
+  start: EventDateTime;
+  end: EventDateTime;
+};
+
+export function buildEventBody(input: LectureEventInput): EventBody {
+  const date = toDateOnly(input.scheduledDate);
   const summary = input.title
     ? `${input.courseName}: Lecture ${input.number} - ${input.title}`
     : `${input.courseName}: Lecture ${input.number}`;
+
+  if (input.startTime) {
+    const endTime =
+      input.endTime ??
+      minutesToTime(timeToMinutes(input.startTime) + DEFAULT_LECTURE_MINUTES);
+    const timeZone = getEventTimeZone();
+    return {
+      summary,
+      start: { dateTime: `${date}T${input.startTime}:00`, timeZone },
+      end: { dateTime: `${date}T${endTime}:00`, timeZone },
+    };
+  }
+
   return {
     summary,
     // Google Calendar's all-day events use an exclusive end date (the day
     // after), same convention as most calendar APIs.
-    start: { date: start },
-    end: { date: nextDay(start) },
+    start: { date },
+    end: { date: nextDay(date) },
   };
+}
+
+/**
+ * PATCH merges into the existing event, so an event that was all-day and
+ * is now timed (or the reverse) would end up with both `date` and
+ * `dateTime` set, which Google rejects. Explicitly nulling the other
+ * shape's fields clears them. Only used for updates - creating an event
+ * has nothing to clear.
+ */
+export function toPatchBody(body: EventBody): EventBody {
+  const clearing = (part: EventDateTime): EventDateTime =>
+    part.dateTime
+      ? { ...part, date: null }
+      : { ...part, dateTime: null, timeZone: null };
+  return { ...body, start: clearing(body.start), end: clearing(body.end) };
 }
 
 export type ExamEventInput = {
@@ -91,7 +150,7 @@ export async function updateCalendarEvent(
   eventId: string,
   input: LectureEventInput
 ): Promise<void> {
-  return updateEvent(accessToken, eventId, buildEventBody(input));
+  return updateEvent(accessToken, eventId, toPatchBody(buildEventBody(input)));
 }
 
 export async function createExamEvent(accessToken: string, input: ExamEventInput): Promise<string> {

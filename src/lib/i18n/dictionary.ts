@@ -77,6 +77,14 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     creditsOptional: "Credits (optional)",
     dayOfWeekOptional: "Day of week (optional)",
     dayOfWeekHint: "Which day this course actually meets. Leave unset to keep using the semester's start day.",
+    lectureTimeLabel: "Lecture time (optional)",
+    startTimeLabel: "Starts",
+    endTimeLabel: "Ends",
+    lectureTimeHint: "When this course's lectures usually meet. You can still change the time of a single lecture.",
+    lectureTimeOverrideHint: (course) =>
+      course
+        ? `Leave empty to use the course time (${course}).`
+        : "Leave empty for no specific time.",
     colorTagOptional: "Color tag (optional)",
     none: "None",
     daySun: "Sunday",
@@ -91,6 +99,13 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     noLecturesYet: "No lectures. Edit the course to set a lecture count.",
     scheduleWeekly: "Schedule weekly",
     scheduleWeeklyHint: "One lecture a week, starting from a date you pick",
+    scheduleBiweekly: "Schedule every two weeks",
+    scheduleBiweeklyHint: "One lecture every two weeks, starting from a date you pick",
+    lectureIntervalLabel: "How often lectures meet",
+    intervalEveryWeek: "Every week",
+    intervalEveryTwoWeeks: "Every two weeks",
+    lectureIntervalHint:
+      "How far apart new lectures are scheduled. Lectures that already have a date keep it - use the schedule button on the course page to re-space them.",
     finalExam: "Final exam",
     notGradedYet: "Not graded yet",
     enterGrade: "Enter grade",
@@ -306,6 +321,14 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     creditsOptional: "נקודות זכות (אופציונלי)",
     dayOfWeekOptional: "יום בשבוע (אופציונלי)",
     dayOfWeekHint: "באיזה יום הקורס באמת מתקיים. השאירו ריק כדי להמשיך להשתמש ביום ההתחלה של הסמסטר.",
+    lectureTimeLabel: "שעת ההרצאה (אופציונלי)",
+    startTimeLabel: "התחלה",
+    endTimeLabel: "סיום",
+    lectureTimeHint: "באיזו שעה ההרצאות של הקורס מתקיימות בדרך כלל. אפשר לשנות את השעה של הרצאה בודדת.",
+    lectureTimeOverrideHint: (course) =>
+      course
+        ? `השאירו ריק כדי להשתמש בשעת הקורס (${course}).`
+        : "השאירו ריק כדי לא לקבוע שעה.",
     colorTagOptional: "צבע תיוג (אופציונלי)",
     none: "ללא",
     daySun: "ראשון",
@@ -320,6 +343,13 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     noLecturesYet: "אין הרצאות. ערכו את הקורס כדי לקבוע מספר הרצאות.",
     scheduleWeekly: "תזמון שבועי",
     scheduleWeeklyHint: "הרצאה אחת בשבוע, מתחילת תאריך שתבחרו",
+    scheduleBiweekly: "תזמון אחת לשבועיים",
+    scheduleBiweeklyHint: "הרצאה אחת בשבועיים, מתחילת תאריך שתבחרו",
+    lectureIntervalLabel: "תדירות ההרצאות",
+    intervalEveryWeek: "כל שבוע",
+    intervalEveryTwoWeeks: "אחת לשבועיים",
+    lectureIntervalHint:
+      "קובע כל כמה זמן מתוזמנות הרצאות חדשות. להרצאות שכבר יש להן תאריך התאריך נשמר - כדי לפזר אותן מחדש השתמשו בכפתור התזמון בעמוד הקורס.",
     finalExam: "בחינה סופית",
     notGradedYet: "עדיין לא הוזן ציון",
     enterGrade: "הזנת ציון",

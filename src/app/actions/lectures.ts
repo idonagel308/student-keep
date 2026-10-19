@@ -6,6 +6,7 @@ import { uploadPdf, deleteBlob } from "@/lib/blob";
 import { assertOwnsLecture, assertOwnsCourse, requireUser } from "@/lib/dal";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google/calendar";
+import { parseTimeRange, resolveLectureTime, type TimeRange } from "@/lib/lectureTime";
 import type { ActionState } from "@/components/ActionForm";
 
 function parseDate(raw: string): Date | null {
@@ -41,11 +42,15 @@ export async function updateLecture(
   const id = String(formData.get("id") ?? "");
   const title = String(formData.get("title") ?? "").trim() || null;
   const dateRaw = String(formData.get("scheduledDate") ?? "").trim();
+  const startTimeRaw = String(formData.get("startTime") ?? "");
+  const endTimeRaw = String(formData.get("endTime") ?? "");
   if (!id) return { error: "Missing lecture id." };
 
   let scheduledDate: Date | null;
+  let ownTime: TimeRange;
   try {
     scheduledDate = parseDate(dateRaw);
+    ownTime = parseTimeRange(startTimeRaw, endTimeRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid date." };
   }
@@ -53,7 +58,10 @@ export async function updateLecture(
   const lecture = await assertOwnsLecture(id);
   const user = await requireUser();
 
-  await prisma.lecture.update({ where: { id }, data: { title, scheduledDate } });
+  await prisma.lecture.update({
+    where: { id },
+    data: { title, scheduledDate, startTime: ownTime.startTime, endTime: ownTime.endTime },
+  });
 
   // Three cases, same shape as homework's due-date sync: date newly set ->
   // create, date still set -> update the existing event, date cleared ->
@@ -65,7 +73,11 @@ export async function updateLecture(
       if (accessToken) {
         if (scheduledDate) {
           const course = await prisma.course.findUniqueOrThrow({ where: { id: lecture.courseId } });
-          const input = { courseName: course.name, number: lecture.number, title, scheduledDate };
+          const time = resolveLectureTime(ownTime, {
+            startTime: course.lectureStartTime,
+            endTime: course.lectureEndTime,
+          });
+          const input = { courseName: course.name, number: lecture.number, title, scheduledDate, ...time };
           if (lecture.googleEventId) {
             await updateCalendarEvent(accessToken, lecture.googleEventId, input);
           } else {
@@ -110,7 +122,9 @@ export async function scheduleLecturesWeekly(formData: FormData) {
 
   const dates = lectures.map((_, i) => {
     const d = new Date(start);
-    d.setUTCDate(d.getUTCDate() + i * 7);
+    // Respect the course's own spacing, so re-dating a every-two-weeks
+    // course doesn't quietly turn it into a weekly one.
+    d.setUTCDate(d.getUTCDate() + i * 7 * course.lectureIntervalWeeks);
     return d;
   });
 
@@ -124,7 +138,17 @@ export async function scheduleLecturesWeekly(formData: FormData) {
       if (accessToken) {
         for (let i = 0; i < lectures.length; i++) {
           const l = lectures[i];
-          const input = { courseName: course.name, number: l.number, title: l.title, scheduledDate: dates[i] };
+          const time = resolveLectureTime(
+            { startTime: l.startTime, endTime: l.endTime },
+            { startTime: course.lectureStartTime, endTime: course.lectureEndTime }
+          );
+          const input = {
+            courseName: course.name,
+            number: l.number,
+            title: l.title,
+            scheduledDate: dates[i],
+            ...time,
+          };
           if (l.googleEventId) {
             await updateCalendarEvent(accessToken, l.googleEventId, input);
           } else {

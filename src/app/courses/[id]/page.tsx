@@ -13,6 +13,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { ProgressRing } from "@/components/ProgressRing";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
+import { formatTimeRange } from "@/lib/lectureTime";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
@@ -101,6 +102,14 @@ export default async function CoursePage({
               {t(lang, "creditsCount", course.credits)}
             </p>
           )}
+          {course.lectureStartTime && (
+            <p dir="ltr" style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
+              {formatTimeRange({
+                startTime: course.lectureStartTime,
+                endTime: course.lectureEndTime,
+              })}
+            </p>
+          )}
           <CourseForm
             action={updateCourse}
             semesterId={course.semesterId}
@@ -116,6 +125,9 @@ export default async function CoursePage({
               credits: course.credits,
               color: course.color,
               dayOfWeek: course.dayOfWeek,
+              lectureStartTime: course.lectureStartTime,
+              lectureEndTime: course.lectureEndTime,
+              lectureIntervalWeeks: course.lectureIntervalWeeks,
             }}
           />
           <DeleteButton
@@ -164,11 +176,23 @@ export default async function CoursePage({
             <>
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {course.lectures.map((l) => (
-                  <LectureRow key={l.id} lecture={l} lang={lang} />
+                  <LectureRow
+                    key={l.id}
+                    lecture={l}
+                    courseTime={{
+                      startTime: course.lectureStartTime,
+                      endTime: course.lectureEndTime,
+                    }}
+                    lang={lang}
+                  />
                 ))}
               </ul>
               <div style={{ marginTop: 12 }}>
-                <ScheduleWeeklyButton courseId={course.id} lang={lang} />
+                <ScheduleWeeklyButton
+                  courseId={course.id}
+                  intervalWeeks={course.lectureIntervalWeeks}
+                  lang={lang}
+                />
               </div>
             </>
           )}

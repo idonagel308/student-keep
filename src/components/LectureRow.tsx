@@ -11,13 +11,25 @@ import {
 import { LectureForm } from "@/components/forms/LectureForm";
 import { PdfFileInput } from "@/components/forms/PdfFileInput";
 import { formatDate, formatDateInput } from "@/lib/format";
+import { formatTimeRange, resolveLectureTime, type TimeRange } from "@/lib/lectureTime";
 import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 import type { Lecture } from "@/generated/prisma/client";
 
-export function LectureRow({ lecture, lang }: { lecture: Lecture; lang: Lang }) {
+export function LectureRow({
+  lecture,
+  courseTime,
+  lang,
+}: {
+  lecture: Lecture;
+  courseTime: TimeRange;
+  lang: Lang;
+}) {
   const [showUpload, setShowUpload] = useState(false);
+  const time = formatTimeRange(
+    resolveLectureTime({ startTime: lecture.startTime, endTime: lecture.endTime }, courseTime)
+  );
 
   return (
     <li
@@ -61,6 +73,13 @@ export function LectureRow({ lecture, lang }: { lecture: Lecture; lang: Lang }) 
 
       <span style={{ flex: "none", fontSize: 11.5, color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
         {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : t(lang, "noDate")}
+        {time && (
+          // Always left-to-right so "10:00–12:00" doesn't get reordered
+          // inside a right-to-left (Hebrew) page.
+          <span dir="ltr" style={{ marginInlineStart: 8 }}>
+            {time}
+          </span>
+        )}
       </span>
 
       {lecture.summaryFileUrl ? (
@@ -135,7 +154,10 @@ export function LectureRow({ lecture, lang }: { lecture: Lecture; lang: Lang }) 
           number: lecture.number,
           title: lecture.title,
           scheduledDate: lecture.scheduledDate ? formatDateInput(lecture.scheduledDate) : "",
+          startTime: lecture.startTime,
+          endTime: lecture.endTime,
         }}
+        courseTimeLabel={formatTimeRange(courseTime)}
       />
     </li>
   );

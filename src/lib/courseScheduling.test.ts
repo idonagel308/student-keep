@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { weeklyDate, firstOccurrenceOnOrAfter } from "./courseScheduling";
+import { weeklyDate, firstOccurrenceOnOrAfter, parseLectureInterval } from "./courseScheduling";
 
 describe("firstOccurrenceOnOrAfter", () => {
   it("returns the same date when it already falls on the target weekday", () => {
@@ -37,5 +37,41 @@ describe("weeklyDate", () => {
     expect(week0.getUTCDay()).toBe(3);
     expect(week1.getUTCDate()).toBe(15);
     expect(week1.getUTCDay()).toBe(3);
+  });
+});
+
+describe("weeklyDate with an interval", () => {
+  const start = new Date(Date.UTC(2026, 6, 5)); // Sun Jul 5 2026
+
+  it("defaults to every week", () => {
+    expect(weeklyDate(start, 2).getUTCDate()).toBe(19);
+  });
+
+  it("spaces lectures two weeks apart when the interval is 2", () => {
+    expect(weeklyDate(start, 0, null, 2).getUTCDate()).toBe(5);
+    expect(weeklyDate(start, 1, null, 2).getUTCDate()).toBe(19);
+    expect(weeklyDate(start, 2, null, 2).getUTCDate()).toBe(2); // Aug 2
+  });
+
+  it("combines with a day of week: first meeting on that day, then every other week", () => {
+    const week0 = weeklyDate(start, 0, 3, 2); // first Wednesday: Jul 8
+    const week1 = weeklyDate(start, 1, 3, 2); // two weeks later: Jul 22
+    expect(week0.getUTCDate()).toBe(8);
+    expect(week1.getUTCDate()).toBe(22);
+    expect(week1.getUTCDay()).toBe(3);
+  });
+});
+
+describe("parseLectureInterval", () => {
+  it("accepts 1 and 2, and treats blank as weekly", () => {
+    expect(parseLectureInterval("1")).toBe(1);
+    expect(parseLectureInterval("2")).toBe(2);
+    expect(parseLectureInterval("")).toBe(1);
+  });
+
+  it("rejects anything else", () => {
+    expect(() => parseLectureInterval("3")).toThrow("every week or every two weeks");
+    expect(() => parseLectureInterval("0")).toThrow();
+    expect(() => parseLectureInterval("weekly")).toThrow();
   });
 });

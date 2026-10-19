@@ -7,15 +7,29 @@ export function firstOccurrenceOnOrAfter(start: Date, dayOfWeek: number): Date {
 }
 
 /**
- * weekIndex 0 lands on `dayOfWeek`'s first occurrence on/after `start` (or
- * on `start` itself when dayOfWeek is unset — the original behavior).
- * Every later index is exactly weekIndex*7 days after that anchor.
+ * Index 0 lands on `dayOfWeek`'s first occurrence on/after `start` (or on
+ * `start` itself when dayOfWeek is unset — the original behavior). Every
+ * later lecture is `intervalWeeks` weeks after the previous one: a lecture
+ * every week (1, the default) or every two weeks (2).
  */
-export function weeklyDate(start: Date, weekIndex: number, dayOfWeek: number | null = null): Date {
+export function weeklyDate(
+  start: Date,
+  weekIndex: number,
+  dayOfWeek: number | null = null,
+  intervalWeeks: number = 1
+): Date {
   const anchor = dayOfWeek === null ? start : firstOccurrenceOnOrAfter(start, dayOfWeek);
   const d = new Date(anchor);
-  d.setUTCDate(d.getUTCDate() + weekIndex * 7);
+  d.setUTCDate(d.getUTCDate() + weekIndex * 7 * intervalWeeks);
   return d;
+}
+
+/** Only "every week" (1) or "every two weeks" (2) exist; blank means the default, 1. */
+export function parseLectureInterval(raw: string): 1 | 2 {
+  const value = raw.trim();
+  if (value === "" || value === "1") return 1;
+  if (value === "2") return 2;
+  throw new Error("Lectures can meet every week or every two weeks.");
 }
 
 export function parseDayOfWeek(raw: string): number | null {
