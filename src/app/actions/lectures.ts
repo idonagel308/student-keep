@@ -79,7 +79,10 @@ export async function updateLecture(
           });
           const input = { courseName: course.name, number: lecture.number, title, scheduledDate, ...time };
           if (lecture.googleEventId) {
-            await updateCalendarEvent(accessToken, lecture.googleEventId, input);
+            const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId, input);
+            if (eventId !== lecture.googleEventId) {
+              await prisma.lecture.update({ where: { id }, data: { googleEventId: eventId } });
+            }
           } else {
             const eventId = await createCalendarEvent(accessToken, input);
             await prisma.lecture.update({ where: { id }, data: { googleEventId: eventId } });
@@ -150,7 +153,10 @@ export async function scheduleLecturesWeekly(formData: FormData) {
             ...time,
           };
           if (l.googleEventId) {
-            await updateCalendarEvent(accessToken, l.googleEventId, input);
+            const eventId = await updateCalendarEvent(accessToken, l.googleEventId, input);
+            if (eventId !== l.googleEventId) {
+              await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: eventId } });
+            }
           } else {
             const eventId = await createCalendarEvent(accessToken, input);
             await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: eventId } });

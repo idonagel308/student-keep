@@ -44,6 +44,7 @@
     "source-map-js": "^1.2.2",
     "undici": "^6.29.1",
     "mysql2": "^3.24.6",
-    "fast-uri": "^3.1.8"
+    "fast-uri": "^3.1.8",
+    "deepmerge-ts": "^8.0.2"
   }
 }

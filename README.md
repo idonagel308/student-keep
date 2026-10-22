@@ -107,6 +107,7 @@ settings for production (they are never read from `.env` in production).
 | `BLOB_READ_WRITE_TOKEN` | Optional | Vercel project → Storage → Blob. Only needed if you want the legacy Vercel Blob fallback available; leave unset for a fresh setup — see [File storage](#file-storage) below. |
 | `SESSION_SECRET` | Yes | A random secret used to sign session cookies. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `SIGNUP_INVITE_CODE` | Yes | Whatever code you want to require for signup. Pick something and share it with whoever you want to be able to create an account. |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | Required for Google sync | A random 32-byte key that encrypts users' Google tokens in the database. Generate with the same command as `SESSION_SECRET`. Connecting Google is refused without it, and changing it later means each user must reconnect. |
 
 ## File storage
 
@@ -125,6 +126,15 @@ served through `/api/files/[...path]`, which checks server-side that the
 requesting user actually owns the lecture/homework row referencing that file
 before streaming it back — an unguessable URL is not treated as
 authorization on its own.
+
+## Privacy
+
+The public privacy note lives at `/privacy` (content in
+`src/lib/privacyContent.ts`, English and Hebrew) and is linked from the
+sign-up form and every page footer. If a feature starts storing or sending
+new kinds of data, update that file and its date in the same change.
+Deleting a course, semester or account also deletes the uploaded PDFs and
+the Google Calendar events/Tasks the app created (`src/lib/cleanup.ts`).
 
 ## Running tests
 

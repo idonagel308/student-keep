@@ -131,11 +131,23 @@ async function createEvent(accessToken: string, body: unknown): Promise<string> 
   return json.id as string;
 }
 
-async function updateEvent(accessToken: string, eventId: string, body: unknown): Promise<void> {
-  const res = await callCalendar(accessToken, "PATCH", `/${eventId}`, body);
-  if (!res.ok) {
-    throw new Error(`Google Calendar update failed (${res.status}): ${await res.text()}`);
-  }
+/**
+ * Patches an event, or recreates it if Google no longer has it (404/410:
+ * deleted by hand, or left over from a previous Google account). Returns the
+ * id the caller should store, which differs from `eventId` only when the
+ * event had to be recreated - without this, a stale id would fail every
+ * future edit silently and the item would never sync again.
+ */
+async function updateOrRecreateEvent(
+  accessToken: string,
+  eventId: string,
+  patchBody: unknown,
+  createBody: unknown
+): Promise<string> {
+  const res = await callCalendar(accessToken, "PATCH", `/${eventId}`, patchBody);
+  if (res.ok) return eventId;
+  if (res.status === 404 || res.status === 410) return createEvent(accessToken, createBody);
+  throw new Error(`Google Calendar update failed (${res.status}): ${await res.text()}`);
 }
 
 export async function createCalendarEvent(
@@ -149,8 +161,9 @@ export async function updateCalendarEvent(
   accessToken: string,
   eventId: string,
   input: LectureEventInput
-): Promise<void> {
-  return updateEvent(accessToken, eventId, toPatchBody(buildEventBody(input)));
+): Promise<string> {
+  const body = buildEventBody(input);
+  return updateOrRecreateEvent(accessToken, eventId, toPatchBody(body), body);
 }
 
 export async function createExamEvent(accessToken: string, input: ExamEventInput): Promise<string> {
@@ -161,8 +174,9 @@ export async function updateExamEvent(
   accessToken: string,
   eventId: string,
   input: ExamEventInput
-): Promise<void> {
-  return updateEvent(accessToken, eventId, buildExamEventBody(input));
+): Promise<string> {
+  const body = buildExamEventBody(input);
+  return updateOrRecreateEvent(accessToken, eventId, body, body);
 }
 
 export async function deleteCalendarEvent(accessToken: string, eventId: string): Promise<void> {

@@ -6,12 +6,22 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
+import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
+import { collectFileUrls, deleteFiles, deleteGoogleItems } from "@/lib/cleanup";
 import { checkRateLimit, recordAttempt, getClientIp } from "@/lib/rateLimit";
 import { requireUser } from "@/lib/dal";
 
 export type AuthState = { error: string } | undefined;
 
 const MIN_PASSWORD_LENGTH = 8;
+// bcrypt only reads the first 72 bytes; rejecting longer input is clearer
+// than silently ignoring the tail.
+const MAX_PASSWORD_BYTES = 72;
+
+// Per-account cap across all IPs, high enough that a stranger cannot lock
+// the owner out with a handful of guesses but low enough to stop a
+// distributed guessing run.
+const LOGIN_ACCOUNT_MAX_ATTEMPTS = 40;
 
 function normalizeEmail(value: FormDataEntryValue | null) {
   return String(value ?? "")
@@ -77,6 +87,9 @@ export async function signup(
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
   }
+  if (Buffer.byteLength(password) > MAX_PASSWORD_BYTES) {
+    return { error: `Password must be at most ${MAX_PASSWORD_BYTES} bytes.` };
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -110,12 +123,16 @@ export async function login(
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
 
-  // Keyed by email (not IP) so an attacker can't dodge the limit by
-  // rotating IPs while targeting one known account; a shared IP (e.g.
-  // office NAT) also won't lock out other tenants' login attempts.
-  const rateLimitKey = `login:${email}`;
+  // Two limits. The strict one is keyed by IP + email, so a stranger failing
+  // against someone's address only locks out their own IP rather than the
+  // real owner. The looser per-email one still stops guessing spread over
+  // many IPs.
+  const ip = await getClientIp();
+  const rateLimitKey = `login:${ip}:${email}`;
+  const accountKey = `login-account:${email}`;
   try {
     await checkRateLimit(rateLimitKey);
+    await checkRateLimit(accountKey, LOGIN_ACCOUNT_MAX_ATTEMPTS);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Please try again later." };
   }
@@ -127,10 +144,12 @@ export async function login(
 
   if (!user || !ok) {
     await recordAttempt(rateLimitKey, false);
+    await recordAttempt(accountKey, false);
     return { error: "Incorrect email or password." };
   }
 
   await recordAttempt(rateLimitKey, true);
+  await recordAttempt(accountKey, true);
   await createSession(user.id, user.tokenVersion);
   redirect("/");
 }
@@ -147,15 +166,30 @@ export async function logout() {
 }
 
 /**
- * Permanently deletes the current user and every semester/course/lecture/
- * homework row under them (Prisma's onDelete: Cascade on Semester ->
- * Course -> Lecture/Homework handles the fan-out from one delete call).
- * Confirmation happens client-side (see Settings.tsx) before this is ever
- * invoked — there is no undo once this runs.
+ * Permanently deletes the current user and everything they own: database
+ * rows (Prisma's onDelete: Cascade fans out from one delete call), the
+ * uploaded PDFs in storage, and the calendar events/tasks synced to their
+ * Google account, which is also disconnected. File and Google cleanup are
+ * best-effort and run around the row delete; confirmation happens
+ * client-side (see Settings.tsx) and there is no undo.
  */
 export async function deleteAccount() {
   const user = await requireUser();
+
+  if (user.googleRefreshToken) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) await deleteGoogleItems({ userId: user.id }, accessToken);
+    } catch (err) {
+      console.error("[google] account delete cleanup failed:", err);
+    }
+    await revokeGoogleToken(user.googleRefreshToken);
+  }
+
+  const fileUrls = await collectFileUrls({ userId: user.id });
   await prisma.user.delete({ where: { id: user.id } });
+  await deleteFiles(fileUrls);
+
   await deleteSession();
   revalidatePath("/", "layout");
   redirect("/login");

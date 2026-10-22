@@ -155,6 +155,16 @@ export function AuthForm({ mode, action, lang }: Props) {
         </div>
       )}
 
+      {isSignup && (
+        <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {t(lang, "signupPrivacyPrefix")}{" "}
+          <Link href="/privacy" target="_blank">
+            {t(lang, "privacyLink")}
+          </Link>
+          .
+        </p>
+      )}
+
       {state?.error && (
         <div style={{ fontSize: "12.5px", color: "var(--color-accent-2)" }}>
           {state.error}

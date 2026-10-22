@@ -42,6 +42,7 @@ export const getCurrentUser = cache(async () => {
   // should behave like "not logged in".
   if (!user || user.tokenVersion !== session.tokenVersion) return null;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to omit it from the returned user
   const { tokenVersion: _tokenVersion, ...publicUser } = user;
   return publicUser;
 });

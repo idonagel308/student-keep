@@ -15,6 +15,7 @@ import {
   updateCalendarEvent,
 } from "@/lib/google/calendar";
 import { deleteTask } from "@/lib/google/tasks";
+import { collectFileUrls, deleteFiles } from "@/lib/cleanup";
 import type { ActionState } from "@/components/ActionForm";
 
 // A real course won't have more lectures than this; the cap exists so a
@@ -222,7 +223,9 @@ export async function updateCourse(
       }
     }
 
+    const summaryUrls = toRemove.flatMap((l) => (l.summaryFileUrl ? [l.summaryFileUrl] : []));
     await prisma.lecture.deleteMany({ where: { id: { in: toRemove.map((l) => l.id) } } });
+    await deleteFiles(summaryUrls);
   }
 
   await prisma.course.update({
@@ -259,13 +262,16 @@ export async function updateCourse(
           },
         });
         for (const lecture of synced) {
-          await updateCalendarEvent(accessToken, lecture.googleEventId!, {
+          const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId!, {
             courseName: name,
             number: lecture.number,
             title: lecture.title,
             scheduledDate: lecture.scheduledDate!,
             ...lectureTime,
           });
+          if (eventId !== lecture.googleEventId) {
+            await prisma.lecture.update({ where: { id: lecture.id }, data: { googleEventId: eventId } });
+          }
         }
       }
     } catch (err) {
@@ -316,7 +322,10 @@ export async function setCourseGrade(
         if (examDate) {
           const input = { courseName: course.name, examDate };
           if (course.googleExamEventId) {
-            await updateExamEvent(accessToken, course.googleExamEventId, input);
+            const eventId = await updateExamEvent(accessToken, course.googleExamEventId, input);
+            if (eventId !== course.googleExamEventId) {
+              await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
+            }
           } else {
             const eventId = await createExamEvent(accessToken, input);
             await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
@@ -372,7 +381,9 @@ export async function deleteCourse(formData: FormData) {
     }
   }
 
+  const fileUrls = await collectFileUrls({ courseId: id });
   await prisma.course.delete({ where: { id } });
+  await deleteFiles(fileUrls);
 
   revalidatePath("/");
   revalidatePath("/semesters");

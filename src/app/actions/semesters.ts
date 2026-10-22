@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsSemester, requireUser } from "@/lib/dal";
+import { getValidAccessToken } from "@/lib/google/auth";
+import { collectFileUrls, deleteFiles, deleteGoogleItems } from "@/lib/cleanup";
 import { parseSemesterDates } from "@/lib/semesterDates";
 import type { ActionState } from "@/components/ActionForm";
 
@@ -80,8 +82,24 @@ export async function deleteSemester(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Missing semester id.");
 
+  const user = await requireUser();
   await assertOwnsSemester(id);
+
+  // Calendar events/tasks and uploaded PDFs live outside the database, so
+  // the cascading row delete below would orphan them. Both cleanups are
+  // best-effort: a Google or storage hiccup must not block the delete.
+  if (user.googleRefreshToken) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) await deleteGoogleItems({ semesterId: id }, accessToken);
+    } catch (err) {
+      console.error("[google] semester delete cleanup failed:", err);
+    }
+  }
+
+  const fileUrls = await collectFileUrls({ semesterId: id });
   await prisma.semester.delete({ where: { id } });
+  await deleteFiles(fileUrls);
 
   revalidatePath("/");
   revalidatePath("/semesters");

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { exchangeCodeForTokens, GOOGLE_OAUTH_STATE_COOKIE } from "@/lib/google/auth";
+import { encryptToken, isEncryptionConfigured } from "@/lib/google/tokenCrypto";
 
 export async function GET(request: Request) {
   const user = await requireUser();
@@ -19,8 +20,20 @@ export async function GET(request: Request) {
     redirect("/?error=google");
   }
 
-  const tokens = await exchangeCodeForTokens(code);
-  if (!tokens.refresh_token) {
+  // Refuse to store a new Google token unencrypted: the privacy note tells
+  // users their tokens are encrypted at rest.
+  if (!isEncryptionConfigured()) {
+    console.error("[google] GOOGLE_TOKEN_ENCRYPTION_KEY is not set; refusing to store tokens.");
+    redirect("/?error=google");
+  }
+
+  let tokens: Awaited<ReturnType<typeof exchangeCodeForTokens>> | null = null;
+  try {
+    tokens = await exchangeCodeForTokens(code);
+  } catch (err) {
+    console.error("[google] code exchange failed:", err);
+  }
+  if (!tokens?.refresh_token) {
     // Shouldn't happen with prompt=consent, but without a refresh token
     // there's nothing usable to store.
     redirect("/?error=google");
@@ -29,8 +42,8 @@ export async function GET(request: Request) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      googleRefreshToken: tokens.refresh_token,
-      googleAccessToken: tokens.access_token,
+      googleRefreshToken: encryptToken(tokens.refresh_token),
+      googleAccessToken: encryptToken(tokens.access_token),
       googleAccessTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
     },
   });
