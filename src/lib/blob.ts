@@ -39,7 +39,8 @@ async function assertLooksLikePdf(file: File) {
  * present, not from a separate feature flag: as long as the R2_* env vars
  * are unset, every call below behaves exactly as it does today (Vercel
  * Blob). Setting all four R2_* vars is the entire cutover — no code
- * change or redeploy logic needed beyond this file. See R2_MIGRATION.md.
+ * change or redeploy logic needed beyond this file. See the "File storage"
+ * section of README.md.
  */
 interface R2Config {
   accountId: string;
