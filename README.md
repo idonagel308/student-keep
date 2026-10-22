@@ -3,7 +3,8 @@
 A small app for keeping track of a semester's coursework: which lectures
 you've watched, what homework is due and when, how far along each course is,
 and how your degree is progressing overall. Built with Next.js, Postgres (via
-Prisma), and Cloudflare R2 for file storage.
+Prisma), and Cloudflare R2 for file storage. Optionally syncs lectures, final
+exams and homework to your own Google Calendar and Google Tasks.
 
 Data is organized as semesters → courses → lectures and homework. Each course
 tracks a lecture count so you can see watched/total progress at a glance, and
@@ -28,7 +29,8 @@ people you hand the code to yourself.
 - **Semesters and courses** — an optional course number (e.g. a catalog code
   like "10225") shown next to the course name, a pace indicator
   (ahead/behind/on-pace vs. lectures actually scheduled to date), and
-  semesters grouped by status (in progress / planned / completed).
+  semesters grouped by status (in progress / planned / completed), and an
+  optional final exam date per course (set from the course page).
 - **Lectures** — auto-scheduled weekly from the semester's start date, or
   from a specific day of the week if you set one per course (e.g. "this
   course meets Wednesdays"), every week or every two weeks, with per-lecture
@@ -37,11 +39,17 @@ people you hand the code to yourself.
   lecture can override it. Google Calendar events are timed when a time is set
   (Asia/Jerusalem by default; set `GOOGLE_EVENT_TIMEZONE` to change it, 1 hour
   long if no end time is given).
-- **Homework** — due dates, an assignment PDF, and your own answer as typed
-  text or an uploaded PDF.
+- **Homework** — due dates, an assignment PDF, your own answer as typed
+  text or an uploaded PDF, and a done/not-done toggle.
+- **Google sync (optional)** — see [Google Calendar and Tasks](#google-calendar-and-tasks-optional).
+- **First-run walkthrough** — new accounts get a short onboarding tour.
 - **Settings** — light/dark appearance, English/Hebrew language (Hebrew
   switches the whole app to right-to-left), degree name and required
-  credits, and account deletion (cascades everything you own, no undo).
+  credits, Google connection and sync toggles, and account deletion
+  (removes everything you own, including uploaded files and synced Google
+  items; no undo).
+- **Privacy note** — a public, bilingual page at `/privacy`, linked from
+  signup and every footer.
 
 ## Stack
 
@@ -53,6 +61,8 @@ people you hand the code to yourself.
   below); a fresh setup should just use R2.
 - Cookie-based sessions signed with a server-side secret, no external auth
   provider
+- Google Calendar and Tasks REST APIs, called with plain `fetch` (no Google
+  client library)
 - Vitest for the test suite
 
 ## Running it locally
@@ -107,6 +117,10 @@ settings for production (they are never read from `.env` in production).
 | `BLOB_READ_WRITE_TOKEN` | Optional | Vercel project → Storage → Blob. Only needed if you want the legacy Vercel Blob fallback available; leave unset for a fresh setup — see [File storage](#file-storage) below. |
 | `SESSION_SECRET` | Yes | A random secret used to sign session cookies. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `SIGNUP_INVITE_CODE` | Yes | Whatever code you want to require for signup. Pick something and share it with whoever you want to be able to create an account. |
+| `GOOGLE_CLIENT_ID` | For Google sync | Google Cloud Console → APIs & Services → Credentials → your OAuth client ID (Web application). |
+| `GOOGLE_CLIENT_SECRET` | For Google sync | Same OAuth client — shown when you create it. |
+| `GOOGLE_REDIRECT_URI` | For Google sync | Must exactly match an authorized redirect URI on that OAuth client: `http://localhost:3000/api/google/callback` locally, `https://<your-domain>/api/google/callback` in production. |
+| `GOOGLE_EVENT_TIMEZONE` | Optional | IANA time zone for timed lecture events. Defaults to `Asia/Jerusalem`. |
 | `GOOGLE_TOKEN_ENCRYPTION_KEY` | Required for Google sync | A random 32-byte key that encrypts users' Google tokens in the database. Generate with the same command as `SESSION_SECRET`. Connecting Google is refused without it, and changing it later means each user must reconnect. |
 
 ## File storage
@@ -127,6 +141,48 @@ requesting user actually owns the lecture/homework row referencing that file
 before streaming it back — an unguessable URL is not treated as
 authorization on its own.
 
+## Google Calendar and Tasks (optional)
+
+Each user can connect their own Google account from Settings. Three
+independent toggles control what syncs:
+
+- **Lectures → Google Calendar events.** All-day events, or timed events when
+  the course or lecture has a time.
+- **Final exam dates → Google Calendar events.**
+- **Homework with a due date → Google Tasks** (completion syncs too).
+
+Sync is **one-way**: the app writes to Google and never reads your calendar
+or tasks. Switching a toggle on backfills everything that already exists.
+After that, creating, editing or deleting an item updates Google, and
+deleting a course, semester or account removes the matching events/tasks.
+If Google no longer has an item (deleted by hand, say), the next edit
+recreates it. Disconnecting revokes the app's access at Google.
+
+Setting it up (one time, in [Google Cloud Console](https://console.cloud.google.com)):
+
+1. Enable the **Google Calendar API** and **Google Tasks API**.
+2. Configure the OAuth consent screen (External). The scopes are
+   `calendar.events` and `tasks`.
+3. Create an OAuth client ID (Web application) with the redirect URIs from
+   the table above, and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
+   `GOOGLE_REDIRECT_URI`.
+4. Generate `GOOGLE_TOKEN_ENCRYPTION_KEY`. Connecting is refused without it.
+
+Things worth knowing:
+
+- While the consent screen is in **Testing** mode, every person who connects
+  must be added under **Test users**, or their connection silently stops
+  working after about 7 days.
+- Sync failures never block saving, and they are not shown in the UI. They
+  are logged server-side with a `[google]` prefix, so search your host's logs
+  for that when something doesn't show up in Google.
+- Tokens are encrypted at rest (AES-256-GCM). If you change or lose
+  `GOOGLE_TOKEN_ENCRYPTION_KEY`, users have to disconnect and reconnect.
+
+`GOOGLE_CALENDAR_SYNC.md` is the original design plan. The code has moved on
+(timed events, exam dates, self-healing updates), so treat this section as
+the source of truth.
+
 ## Privacy
 
 The public privacy note lives at `/privacy` (content in
@@ -139,7 +195,9 @@ the Google Calendar events/Tasks the app created (`src/lib/cleanup.ts`).
 ## Running tests
 
 ```bash
-npm test
+npm test          # Vitest suite
+npm run typecheck # tsc --noEmit
+npm run lint      # ESLint
 ```
 
 Runs the Vitest suite: input validation, path-safety checks, and pure
@@ -157,7 +215,8 @@ you're setting this up fresh:
 
 - Set all the environment variables from the table above in your host's
   environment settings — they don't get picked up from `.env` automatically
-  in production.
+  in production. If you use Google sync, add your production redirect URI
+  to the OAuth client too.
 - The build script (`scripts/migrate-if-production.js`) runs pending
   migrations automatically during a production build, but skips preview
   builds so a preview deploy can't run migrations against your real database.
@@ -180,9 +239,20 @@ you're setting this up fresh:
 - Uploaded files are stored as private objects and served through an
   ownership-checked route rather than relying on an unguessable URL (see
   [File storage](#file-storage) above).
-- Login and signup are rate-limited per account/IP using a database table
-  (not in-memory), since serverless functions don't share memory between
-  invocations.
+- Login and signup are rate-limited using a database table (not
+  in-memory), since serverless functions don't share memory between
+  invocations. Login is limited per IP + email, with a looser per-account
+  cap, so a stranger can't lock the real owner out. Expired rows are purged
+  because their keys contain IPs and emails.
+- Responses carry a strict Content-Security-Policy, HSTS, and the usual
+  clickjacking/sniffing headers (`next.config.ts`).
+- Anything that lives outside the database (uploaded PDFs, Google events and
+  tasks) is cleaned up explicitly when its parent is deleted — a cascading row
+  delete alone would orphan it (`src/lib/cleanup.ts`).
+- `package.json` has an `overrides` block pinning patched versions of a few
+  transitive dependencies. Re-check with `npm audit --omit=dev` when
+  upgrading, and drop an override once the package that pulled it in has
+  caught up.
 - i18n is cookie-based (not localStorage), so pages render in the correct
   language on the very first server response instead of flashing English.
   Every server-component page calls `getLang()` + `t(lang, key)`
