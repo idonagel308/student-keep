@@ -120,8 +120,7 @@ describe("uploadPdf input validation (backend-independent — rejected before an
 // --- Live round trip against a real R2 bucket -------------------------
 //
 // Only runs when R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY /
-// R2_BUCKET_NAME are all set in the environment (they are not, as of the
-// R2_MIGRATION.md proposal — nothing has been migrated yet). Once real R2
+// R2_BUCKET_NAME are all set in the environment (they are not set by default). Once real R2
 // credentials exist, running `npm test` exercises the exact code path
 // production will use: upload -> read back through getStoredPdf (the same
 // function the /api/files/[...path] route calls) -> delete -> confirm gone.

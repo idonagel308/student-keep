@@ -14,8 +14,7 @@ export type PrivacyContent = {
 };
 
 // Keep in sync with what the app actually does (see README "Privacy").
-// If a feature starts collecting something new, update this and the date.
-export const PRIVACY_UPDATED = "2026-10-22";
+// If a feature starts collecting something new, update the text and the date.
 
 export const privacyContent: Record<Lang, PrivacyContent> = {
   en: {
