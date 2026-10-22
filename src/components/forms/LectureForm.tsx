@@ -12,15 +12,21 @@ type LectureValues = {
   number: number;
   title: string | null;
   scheduledDate: string;
+  /** The lecture's own override only - empty means "use the course time". */
+  startTime: string | null;
+  endTime: string | null;
 };
 
 export function LectureForm({
   action,
   initial,
+  courseTimeLabel,
   lang,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initial: LectureValues;
+  /** The course's formatted time, shown so it's clear what "empty" falls back to. */
+  courseTimeLabel: string;
   lang: Lang;
 }) {
   return (
@@ -60,6 +66,31 @@ export function LectureForm({
                   defaultValue={initial.scheduledDate}
                   className={inputClass}
                 />
+              </div>
+              <div className="field">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1 text-xs">
+                    {t(lang, "startTimeLabel")}
+                    <input
+                      type="time"
+                      name="startTime"
+                      defaultValue={initial.startTime ?? ""}
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    {t(lang, "endTimeLabel")}
+                    <input
+                      type="time"
+                      name="endTime"
+                      defaultValue={initial.endTime ?? ""}
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
+                  {t(lang, "lectureTimeOverrideHint", courseTimeLabel)}
+                </p>
               </div>
               <div className="dialog-actions">
                 <button type="button" onClick={close} className={btnSecondary}>

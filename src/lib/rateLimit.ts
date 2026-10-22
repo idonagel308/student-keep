@@ -11,12 +11,12 @@ const MAX_ATTEMPTS = 8;
  * Call before doing the protected work; call recordAttempt after, with the
  * outcome, regardless of which branch this returns.
  */
-export async function checkRateLimit(key: string) {
+export async function checkRateLimit(key: string, maxAttempts = MAX_ATTEMPTS) {
   const row = await prisma.rateLimit.findUnique({ where: { key } });
   if (!row) return;
 
   const windowExpired = Date.now() - row.windowAt.getTime() >= WINDOW_MS;
-  if (!windowExpired && row.count >= MAX_ATTEMPTS) {
+  if (!windowExpired && row.count >= maxAttempts) {
     throw new Error("Too many attempts. Please try again in a few minutes.");
   }
 }
@@ -33,6 +33,13 @@ export async function recordAttempt(key: string, success: boolean) {
   }
 
   const now = new Date();
+
+  // Keys contain IP addresses and emails, so don't keep them around: drop
+  // every record whose window has already expired.
+  await prisma.rateLimit.deleteMany({
+    where: { windowAt: { lt: new Date(now.getTime() - WINDOW_MS) } },
+  });
+
   const row = await prisma.rateLimit.findUnique({ where: { key } });
   const windowExpired = !row || now.getTime() - row.windowAt.getTime() >= WINDOW_MS;
 

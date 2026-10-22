@@ -41,6 +41,11 @@ function ItemChip({ item }: { item: WeekCalendarItem }) {
         color: item.type === "lecture" ? "var(--color-accent-800)" : "var(--color-accent-2-800)",
       }}
     >
+      {item.time && (
+        <>
+          <span dir="ltr">{item.time}</span>{" "}
+        </>
+      )}
       {item.label}
     </Link>
   );

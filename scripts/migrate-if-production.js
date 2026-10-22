@@ -4,6 +4,7 @@
 // same DATABASE_URL as production in this single-database setup, so
 // running `prisma migrate deploy` there would apply an unreviewed branch's
 // schema changes to the live database.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- plain CommonJS script, run directly with `node`
 const { execSync } = require("node:child_process");
 
 if (process.env.VERCEL_ENV === "production") {

@@ -14,6 +14,9 @@ type CourseValues = {
   credits: number | null;
   color: string | null;
   dayOfWeek: number | null;
+  lectureStartTime: string | null;
+  lectureEndTime: string | null;
+  lectureIntervalWeeks: number;
 };
 
 const COLORS = ["#6366f1", "#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#ec4899", "#8b5cf6"];
@@ -129,6 +132,46 @@ export function CourseForm({
                 </select>
                 <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
                   {t(lang, "dayOfWeekHint")}
+                </p>
+              </div>
+              <div className="field">
+                <label className={labelClass}>{t(lang, "lectureIntervalLabel")}</label>
+                <select
+                  name="lectureIntervalWeeks"
+                  defaultValue={initial?.lectureIntervalWeeks ?? 1}
+                  className={inputClass}
+                >
+                  <option value={1}>{t(lang, "intervalEveryWeek")}</option>
+                  <option value={2}>{t(lang, "intervalEveryTwoWeeks")}</option>
+                </select>
+                <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
+                  {t(lang, "lectureIntervalHint")}
+                </p>
+              </div>
+              <div className="field">
+                <label className={labelClass}>{t(lang, "lectureTimeLabel")}</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1 text-xs">
+                    {t(lang, "startTimeLabel")}
+                    <input
+                      type="time"
+                      name="lectureStartTime"
+                      defaultValue={initial?.lectureStartTime ?? ""}
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    {t(lang, "endTimeLabel")}
+                    <input
+                      type="time"
+                      name="lectureEndTime"
+                      defaultValue={initial?.lectureEndTime ?? ""}
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
+                  {t(lang, "lectureTimeHint")}
                 </p>
               </div>
               <div className="field">

@@ -1,8 +1,12 @@
+import { timeToMinutes } from "./lectureTime";
+
 export type WeekCalendarItem = {
   id: string;
   type: "lecture" | "homework";
   date: Date;
   label: string;
+  /** Optional "HH:MM" start time - used to order a day's items and shown on the chip. */
+  time?: string | null;
   href: string;
   color: string | null;
 };
@@ -38,7 +42,13 @@ export function buildWeekDays(weekStart: Date, items: WeekCalendarItem[]): WeekC
   }
 
   for (const day of days) {
-    day.items.sort((a, b) => a.date.getTime() - b.date.getTime());
+    day.items.sort(
+      (a, b) =>
+        a.date.getTime() - b.date.getTime() ||
+        // Same day: timed items in clock order, untimed items (homework
+        // due dates, lectures with no time) after them.
+        (a.time ? timeToMinutes(a.time) : Infinity) - (b.time ? timeToMinutes(b.time) : Infinity)
+    );
   }
 
   return days;

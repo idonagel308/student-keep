@@ -83,6 +83,18 @@ export default async function RootLayout({
         >
           {children}
         </main>
+        <footer
+          style={{
+            maxWidth: 1120,
+            margin: "0 auto",
+            width: "100%",
+            padding: "0 22px 28px",
+            fontSize: 12.5,
+            color: "var(--color-neutral-600)",
+          }}
+        >
+          <Link href="/privacy">{t(lang, "privacyLink")}</Link>
+        </footer>
         {user && !user.hasCompletedOnboarding && <Onboarding lang={lang} />}
       </body>
     </html>

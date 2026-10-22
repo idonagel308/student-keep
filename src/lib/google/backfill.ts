@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { createCalendarEvent, createExamEvent } from "@/lib/google/calendar";
 import { createTask } from "@/lib/google/tasks";
+import { resolveLectureTime } from "@/lib/lectureTime";
 
 /**
  * Runs once when a sync toggle flips on — walks existing rows that aren't
@@ -21,11 +22,16 @@ export async function backfillLectures(userId: string, accessToken: string): Pro
 
   for (const lecture of lectures) {
     try {
+      const time = resolveLectureTime(
+        { startTime: lecture.startTime, endTime: lecture.endTime },
+        { startTime: lecture.course.lectureStartTime, endTime: lecture.course.lectureEndTime }
+      );
       const eventId = await createCalendarEvent(accessToken, {
         courseName: lecture.course.name,
         number: lecture.number,
         title: lecture.title,
         scheduledDate: lecture.scheduledDate!,
+        ...time,
       });
       await prisma.lecture.update({ where: { id: lecture.id }, data: { googleEventId: eventId } });
     } catch (err) {

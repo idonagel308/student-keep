@@ -4,11 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertOwnsCourse, assertOwnsSemester, requireUser } from "@/lib/dal";
-import { weeklyDate, parseDayOfWeek } from "@/lib/courseScheduling";
+import { weeklyDate, parseDayOfWeek, parseLectureInterval } from "@/lib/courseScheduling";
+import { parseTimeRange, type TimeRange } from "@/lib/lectureTime";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { backfillLectures } from "@/lib/google/backfill";
-import { deleteCalendarEvent, createExamEvent, updateExamEvent } from "@/lib/google/calendar";
+import {
+  deleteCalendarEvent,
+  createExamEvent,
+  updateExamEvent,
+  updateCalendarEvent,
+} from "@/lib/google/calendar";
 import { deleteTask } from "@/lib/google/tasks";
+import { collectFileUrls, deleteFiles } from "@/lib/cleanup";
 import type { ActionState } from "@/components/ActionForm";
 
 // A real course won't have more lectures than this; the cap exists so a
@@ -78,6 +85,9 @@ export async function createCourse(
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
   const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
+  const lectureStartTimeRaw = String(formData.get("lectureStartTime") ?? "");
+  const lectureEndTimeRaw = String(formData.get("lectureEndTime") ?? "");
+  const lectureIntervalRaw = String(formData.get("lectureIntervalWeeks") ?? "");
 
   if (!semesterId || !name) {
     return { error: "Course name is required." };
@@ -88,9 +98,13 @@ export async function createCourse(
 
   let credits: number | null;
   let dayOfWeek: number | null;
+  let lectureTime: TimeRange;
+  let lectureIntervalWeeks: 1 | 2;
   try {
     credits = parseCredits(creditsRaw);
     dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
+    lectureTime = parseTimeRange(lectureStartTimeRaw, lectureEndTimeRaw);
+    lectureIntervalWeeks = parseLectureInterval(lectureIntervalRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
@@ -107,10 +121,13 @@ export async function createCourse(
       credits,
       color,
       dayOfWeek,
+      lectureStartTime: lectureTime.startTime,
+      lectureEndTime: lectureTime.endTime,
+      lectureIntervalWeeks,
       lectures: {
         create: Array.from({ length: Math.floor(totalLectures) }, (_, i) => ({
           number: i + 1,
-          scheduledDate: weeklyDate(semester.startDate, i, dayOfWeek),
+          scheduledDate: weeklyDate(semester.startDate, i, dayOfWeek, lectureIntervalWeeks),
         })),
       },
     },
@@ -135,6 +152,9 @@ export async function updateCourse(
   const creditsRaw = String(formData.get("credits") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim() || null;
   const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
+  const lectureStartTimeRaw = String(formData.get("lectureStartTime") ?? "");
+  const lectureEndTimeRaw = String(formData.get("lectureEndTime") ?? "");
+  const lectureIntervalRaw = String(formData.get("lectureIntervalWeeks") ?? "");
 
   if (!id || !name) return { error: "Course name is required." };
   if (!Number.isFinite(totalLectures) || totalLectures < 0 || totalLectures > MAX_LECTURES) {
@@ -143,15 +163,19 @@ export async function updateCourse(
 
   let credits: number | null;
   let dayOfWeek: number | null;
+  let lectureTime: TimeRange;
+  let lectureIntervalWeeks: 1 | 2;
   try {
     credits = parseCredits(creditsRaw);
     dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
+    lectureTime = parseTimeRange(lectureStartTimeRaw, lectureEndTimeRaw);
+    lectureIntervalWeeks = parseLectureInterval(lectureIntervalRaw);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
 
   const user = await requireUser();
-  await assertOwnsCourse(id);
+  const existingCourse = await assertOwnsCourse(id);
 
   const target = Math.floor(totalLectures);
 
@@ -177,7 +201,7 @@ export async function updateCourse(
       data: Array.from({ length: target - currentCount }, (_, i) => ({
         courseId: id,
         number: currentCount + i + 1,
-        scheduledDate: weeklyDate(anchor, i + anchorWeekOffset, anchorDayOfWeek),
+        scheduledDate: weeklyDate(anchor, i + anchorWeekOffset, anchorDayOfWeek, lectureIntervalWeeks),
       })),
     });
 
@@ -199,7 +223,9 @@ export async function updateCourse(
       }
     }
 
+    const summaryUrls = toRemove.flatMap((l) => (l.summaryFileUrl ? [l.summaryFileUrl] : []));
     await prisma.lecture.deleteMany({ where: { id: { in: toRemove.map((l) => l.id) } } });
+    await deleteFiles(summaryUrls);
   }
 
   await prisma.course.update({
@@ -211,8 +237,47 @@ export async function updateCourse(
       credits,
       color,
       dayOfWeek,
+      lectureStartTime: lectureTime.startTime,
+      lectureEndTime: lectureTime.endTime,
+      lectureIntervalWeeks,
     },
   });
+
+  // The course's time is the default for every lecture without its own
+  // override, so already-synced events for those lectures need the new
+  // time too. Lectures with an override keep theirs.
+  const timeChanged =
+    existingCourse.lectureStartTime !== lectureTime.startTime ||
+    existingCourse.lectureEndTime !== lectureTime.endTime;
+  if (timeChanged && user.googleRefreshToken && user.syncLecturesToCalendar) {
+    try {
+      const accessToken = await getValidAccessToken(user);
+      if (accessToken) {
+        const synced = await prisma.lecture.findMany({
+          where: {
+            courseId: id,
+            googleEventId: { not: null },
+            scheduledDate: { not: null },
+            startTime: null,
+          },
+        });
+        for (const lecture of synced) {
+          const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId!, {
+            courseName: name,
+            number: lecture.number,
+            title: lecture.title,
+            scheduledDate: lecture.scheduledDate!,
+            ...lectureTime,
+          });
+          if (eventId !== lecture.googleEventId) {
+            await prisma.lecture.update({ where: { id: lecture.id }, data: { googleEventId: eventId } });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[google] lecture time sync failed:", err);
+    }
+  }
 
   revalidatePath("/");
   revalidatePath("/semesters");
@@ -257,7 +322,10 @@ export async function setCourseGrade(
         if (examDate) {
           const input = { courseName: course.name, examDate };
           if (course.googleExamEventId) {
-            await updateExamEvent(accessToken, course.googleExamEventId, input);
+            const eventId = await updateExamEvent(accessToken, course.googleExamEventId, input);
+            if (eventId !== course.googleExamEventId) {
+              await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
+            }
           } else {
             const eventId = await createExamEvent(accessToken, input);
             await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
@@ -313,7 +381,9 @@ export async function deleteCourse(formData: FormData) {
     }
   }
 
+  const fileUrls = await collectFileUrls({ courseId: id });
   await prisma.course.delete({ where: { id } });
+  await deleteFiles(fileUrls);
 
   revalidatePath("/");
   revalidatePath("/semesters");

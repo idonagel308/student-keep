@@ -266,6 +266,9 @@ export default async function SemesterPage({
                       credits: c.credits,
                       color: c.color,
                       dayOfWeek: c.dayOfWeek,
+                      lectureStartTime: c.lectureStartTime,
+                      lectureEndTime: c.lectureEndTime,
+                      lectureIntervalWeeks: c.lectureIntervalWeeks,
                     }}
                   />
                   <DeleteButton

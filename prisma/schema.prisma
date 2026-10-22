@@ -109,6 +109,18 @@ model Course {
   /// scheduledDate values are never rewritten.
   dayOfWeek Int? @map("day_of_week")
 
+  /// The usual "HH:MM" (24h) time this course's lectures meet. Null means
+  /// no time set. Lectures inherit it unless they carry their own override
+  /// (Lecture.startTime/endTime) - see lib/lectureTime.ts.
+  lectureStartTime String? @map("lecture_start_time")
+  lectureEndTime   String? @map("lecture_end_time")
+
+  /// How many weeks apart this course's lectures are scheduled: 1 (every
+  /// week) or 2 (every two weeks) - nothing else is offered. Like
+  /// dayOfWeek, changing it only affects lectures scheduled afterwards;
+  /// existing dates are never rewritten.
+  lectureIntervalWeeks Int @default(1) @map("lecture_interval_weeks")
+
   semester Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   lectures Lecture[]
   homework Homework[]
@@ -131,6 +143,12 @@ model Lecture {
   /// created (or extended), and manually overridable per lecture. Drives
   /// both the Pace indicator and the "lectures this week" list.
   scheduledDate DateTime? @map("scheduled_date")
+
+  /// Optional per-lecture override of the course's lecture time ("HH:MM",
+  /// 24h). Null means "use the course's time". A lecture with a start time
+  /// uses its own end time too, never the course's.
+  startTime String? @map("start_time")
+  endTime   String? @map("end_time")
 
   /// The Google Calendar event id this lecture is mirrored to, so an edit
   /// or delete can target the right event instead of creating duplicates.

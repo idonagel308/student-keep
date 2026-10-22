@@ -46,15 +46,20 @@ export async function createTask(accessToken: string, input: HomeworkTaskInput):
   return json.id as string;
 }
 
+/**
+ * Patches a task, or recreates it if Google no longer has it (404). Returns
+ * the id the caller should store - see updateOrRecreateEvent in calendar.ts
+ * for why a stale id must not be allowed to fail forever.
+ */
 export async function updateTask(
   accessToken: string,
   taskId: string,
   input: HomeworkTaskInput
-): Promise<void> {
+): Promise<string> {
   const res = await callTasks(accessToken, "PATCH", `/${taskId}`, buildTaskBody(input));
-  if (!res.ok) {
-    throw new Error(`Google Tasks update failed (${res.status}): ${await res.text()}`);
-  }
+  if (res.ok) return taskId;
+  if (res.status === 404 || res.status === 410) return createTask(accessToken, input);
+  throw new Error(`Google Tasks update failed (${res.status}): ${await res.text()}`);
 }
 
 export async function deleteTask(accessToken: string, taskId: string): Promise<void> {

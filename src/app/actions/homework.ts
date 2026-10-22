@@ -156,7 +156,10 @@ export async function updateHomework(
             completed: existing.completed,
           };
           if (existing.googleTaskId) {
-            await updateTask(accessToken, existing.googleTaskId, input);
+            const taskId = await updateTask(accessToken, existing.googleTaskId, input);
+            if (taskId !== existing.googleTaskId) {
+              await prisma.homework.update({ where: { id }, data: { googleTaskId: taskId } });
+            }
           } else {
             const taskId = await createTask(accessToken, input);
             await prisma.homework.update({ where: { id }, data: { googleTaskId: taskId } });
@@ -196,13 +199,16 @@ export async function toggleHomework(formData: FormData) {
         const accessToken = await getValidAccessToken(user);
         if (accessToken) {
           const course = await prisma.course.findUniqueOrThrow({ where: { id: existing.courseId } });
-          await updateTask(accessToken, existing.googleTaskId, {
+          const taskId = await updateTask(accessToken, existing.googleTaskId, {
             courseName: course.name,
             name: existing.name,
             details: existing.details,
             dueDate: existing.dueDate,
             completed: nextCompleted,
           });
+          if (taskId !== existing.googleTaskId) {
+            await prisma.homework.update({ where: { id }, data: { googleTaskId: taskId } });
+          }
         }
       } catch (err) {
         console.error("[google] homework completion sync failed:", err);

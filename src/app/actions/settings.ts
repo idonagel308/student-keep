@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
-import { getValidAccessToken } from "@/lib/google/auth";
+import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
 import { backfillLectures, backfillHomework, backfillExamDates } from "@/lib/google/backfill";
 import type { ActionState } from "@/components/ActionForm";
 
@@ -109,6 +109,7 @@ export async function setGoogleSyncPreferences(
  */
 export async function disconnectGoogleCalendar() {
   const user = await requireUser();
+  if (user.googleRefreshToken) await revokeGoogleToken(user.googleRefreshToken);
 
   await prisma.user.update({
     where: { id: user.id },

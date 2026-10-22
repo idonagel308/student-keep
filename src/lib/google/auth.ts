@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { decryptToken, encryptToken, isEncrypted, isEncryptionConfigured } from "@/lib/google/tokenCrypto";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 
 /** Short-lived cookie carrying the CSRF state value between /connect and /callback. */
 export const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state";
@@ -105,16 +107,42 @@ export async function getValidAccessToken(user: GoogleUser): Promise<string | nu
   if (!user.googleRefreshToken) return null;
 
   if (user.googleAccessToken && !isTokenExpired(user.googleAccessTokenExpiry)) {
-    return user.googleAccessToken;
+    return decryptToken(user.googleAccessToken);
   }
 
-  const { access_token, expires_in } = await refreshAccessToken(user.googleRefreshToken);
+  const refreshToken = decryptToken(user.googleRefreshToken);
+  const { access_token, expires_in } = await refreshAccessToken(refreshToken);
   const expiry = new Date(Date.now() + expires_in * 1000);
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { googleAccessToken: access_token, googleAccessTokenExpiry: expiry },
+    data: {
+      googleAccessToken: encryptToken(access_token),
+      googleAccessTokenExpiry: expiry,
+      // Upgrade a token saved as plain text before encryption was enabled.
+      ...(isEncryptionConfigured() && !isEncrypted(user.googleRefreshToken)
+        ? { googleRefreshToken: encryptToken(refreshToken) }
+        : {}),
+    },
   });
 
   return access_token;
+}
+
+/**
+ * Tells Google to invalidate the grant, so the app also disappears from the
+ * user's "Third-party access" list. Best-effort: the caller clears its own
+ * copy of the token regardless, so a failure here is only logged.
+ */
+export async function revokeGoogleToken(storedRefreshToken: string): Promise<void> {
+  try {
+    const res = await fetch(REVOKE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: decryptToken(storedRefreshToken) }),
+    });
+    if (!res.ok) console.error(`[google] token revoke returned ${res.status}`);
+  } catch (err) {
+    console.error("[google] token revoke failed:", err);
+  }
 }

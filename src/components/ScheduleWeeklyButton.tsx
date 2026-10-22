@@ -5,8 +5,17 @@ import { scheduleLecturesWeekly } from "@/app/actions/lectures";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 
-export function ScheduleWeeklyButton({ courseId, lang }: { courseId: string; lang: Lang }) {
+export function ScheduleWeeklyButton({
+  courseId,
+  intervalWeeks,
+  lang,
+}: {
+  courseId: string;
+  intervalWeeks: number;
+  lang: Lang;
+}) {
   const [open, setOpen] = useState(false);
+  const biweekly = intervalWeeks === 2;
 
   if (!open) {
     return (
@@ -15,9 +24,9 @@ export function ScheduleWeeklyButton({ courseId, lang }: { courseId: string; lan
         onClick={() => setOpen(true)}
         className="btn btn-ghost"
         style={{ gap: 7 }}
-        title={t(lang, "scheduleWeeklyHint")}
+        title={t(lang, biweekly ? "scheduleBiweeklyHint" : "scheduleWeeklyHint")}
       >
-        {t(lang, "scheduleWeekly")}
+        {t(lang, biweekly ? "scheduleBiweekly" : "scheduleWeekly")}
       </button>
     );
   }
