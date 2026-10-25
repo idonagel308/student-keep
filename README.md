@@ -20,7 +20,9 @@ people you hand the code to yourself.
 
 - **This week** (the home page) — homework due across every semester
   (including overdue), lectures scheduled this week for whichever semester is
-  currently active, and a 7-day calendar strip showing both at a glance.
+  currently active (grouped by day, with their times), and a 7-day calendar
+  showing both at a glance. Calendar entries lead with the course name and
+  carry the course's color; on phones the calendar becomes one card per day.
 - **Degree overview** — credits-weighted average across every graded course,
   a per-semester breakdown, and a list of graded courses searchable by name
   or course number. A course can be graded either with a numeric score or as

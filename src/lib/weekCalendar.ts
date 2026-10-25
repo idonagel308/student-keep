@@ -4,6 +4,9 @@ export type WeekCalendarItem = {
   id: string;
   type: "lecture" | "homework";
   date: Date;
+  /** The course this belongs to - the main text of a calendar chip. */
+  courseName: string;
+  /** Secondary text: the lecture's title (or "Lecture N"), or the homework's name. */
   label: string;
   /** Optional "HH:MM" start time - used to order a day's items and shown on the chip. */
   time?: string | null;
@@ -52,4 +55,24 @@ export function buildWeekDays(weekStart: Date, items: WeekCalendarItem[]): WeekC
   }
 
   return days;
+}
+
+/**
+ * Groups rows into consecutive per-calendar-day buckets, keeping the input
+ * order. Uses the same day comparison as buildWeekDays so a list and the
+ * week grid can never disagree about which day an item falls on. Expects
+ * `rows` already sorted by date.
+ */
+export function groupByCalendarDay<T>(
+  rows: T[],
+  getDate: (row: T) => Date
+): { date: Date; rows: T[] }[] {
+  const groups: { date: Date; rows: T[] }[] = [];
+  for (const row of rows) {
+    const date = getDate(row);
+    const last = groups[groups.length - 1];
+    if (last && sameCalendarDay(last.date, date)) last.rows.push(row);
+    else groups.push({ date, rows: [row] });
+  }
+  return groups;
 }

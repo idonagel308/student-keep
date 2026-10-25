@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildWeekDays, type WeekCalendarItem } from "./weekCalendar";
+import { buildWeekDays, groupByCalendarDay, type WeekCalendarItem } from "./weekCalendar";
 
 function item(overrides: Partial<WeekCalendarItem>): WeekCalendarItem {
   return {
     id: "1",
     type: "lecture",
     date: new Date(2026, 6, 27),
+    courseName: "Algorithms",
     label: "Test",
     href: "/courses/1",
     color: null,
@@ -63,5 +64,23 @@ describe("buildWeekDays", () => {
       item({ id: "none", date: wed }),
     ]);
     expect(days[2].items.map((i) => i.id)).toEqual(["early", "late", "hw", "none"]);
+  });
+});
+
+describe("groupByCalendarDay", () => {
+  it("groups consecutive rows that share a calendar day, keeping order", () => {
+    const rows = [
+      { id: "a", d: new Date(2026, 6, 28, 9, 0) },
+      { id: "b", d: new Date(2026, 6, 28, 14, 0) },
+      { id: "c", d: new Date(2026, 6, 30, 10, 0) },
+    ];
+    const groups = groupByCalendarDay(rows, (r) => r.d);
+    expect(groups).toHaveLength(2);
+    expect(groups[0].rows.map((r) => r.id)).toEqual(["a", "b"]);
+    expect(groups[1].rows.map((r) => r.id)).toEqual(["c"]);
+  });
+
+  it("returns no groups for no rows", () => {
+    expect(groupByCalendarDay([], () => new Date())).toEqual([]);
   });
 });

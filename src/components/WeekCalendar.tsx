@@ -23,30 +23,51 @@ function sameCalendarDay(a: Date, b: Date): boolean {
   );
 }
 
-function ItemChip({ item }: { item: WeekCalendarItem }) {
+// Each line picks its own text direction (dir="auto") so an English course
+// name inside the Hebrew UI, or the reverse, is cut off at its real end
+// rather than its start. The Link is a column flexbox that pins each
+// shrink-wrapped line to the layout's start edge, so lines still line up.
+const ellipsis = {
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
+function ItemChip({ item, extra }: { item: WeekCalendarItem; extra: boolean }) {
+  const isLecture = item.type === "lecture";
   return (
     <Link
       href={item.href}
+      className={extra ? "week-chip-extra" : undefined}
+      title={[item.time, item.courseName, item.label].filter(Boolean).join(" · ")}
       style={{
-        display: "block",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
         fontSize: 10.5,
         lineHeight: 1.3,
         padding: "3px 6px",
         borderRadius: "var(--radius-sm)",
         overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        background:
-          item.type === "lecture" ? "var(--color-accent-100)" : "var(--color-accent-2-100)",
-        color: item.type === "lecture" ? "var(--color-accent-800)" : "var(--color-accent-2-800)",
+        background: isLecture ? "var(--color-accent-100)" : "var(--color-accent-2-100)",
+        color: isLecture ? "var(--color-accent-800)" : "var(--color-accent-2-800)",
+        // The stripe is the course's color, so chips from the same course
+        // read as a group at a glance.
+        borderInlineStart: `3px solid ${item.color ?? "var(--color-accent)"}`,
       }}
     >
-      {item.time && (
-        <>
-          <span dir="ltr">{item.time}</span>{" "}
-        </>
-      )}
-      {item.label}
+      <span dir="auto" style={{ ...ellipsis, fontWeight: 600 }}>
+        {item.time && (
+          <>
+            <span dir="ltr">{item.time}</span>{" "}
+          </>
+        )}
+        {item.courseName}
+      </span>
+      <span dir="auto" style={{ ...ellipsis, opacity: 0.85 }}>
+        {item.label}
+      </span>
     </Link>
   );
 }
@@ -67,22 +88,20 @@ export function WeekCalendar({
   return (
     <section style={{ marginTop: 48 }}>
       <h2 style={{ fontSize: 24, margin: "0 0 20px" }}>{t(lang, "weekAtAGlance")}</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: 8,
-        }}
-      >
+      <div className="week-grid">
         {days.map((day, i) => {
           const isToday = sameCalendarDay(day.date, today);
           const isExpanded = expanded === i;
-          const visible = isExpanded ? day.items : day.items.slice(0, VISIBLE_ITEMS_PER_DAY);
-          const hiddenCount = day.items.length - visible.length;
+          const hiddenCount = isExpanded ? 0 : Math.max(0, day.items.length - VISIBLE_ITEMS_PER_DAY);
 
           return (
             <div
               key={i}
+              className="week-day"
+              // Collapsing is CSS-only: every chip is rendered, and the extras
+              // are hidden on wide screens until "+N more" is pressed. Phones
+              // show the whole day, so nothing is ever tucked away there.
+              data-collapsed={!isExpanded}
               style={{
                 background: "var(--color-surface)",
                 borderRadius: "var(--radius-md)",
@@ -94,23 +113,30 @@ export function WeekCalendar({
                 boxShadow: isToday ? "inset 0 0 0 1.5px var(--color-accent)" : undefined,
               }}
             >
-              <div
-                style={{
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "var(--color-neutral-600)",
-                }}
-              >
-                {t(lang, DAY_KEYS[i])}
+              <div className="week-day-head">
+                <div
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--color-neutral-600)",
+                  }}
+                >
+                  {t(lang, DAY_KEYS[i])}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{format(day.date, "d")}</div>
               </div>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{format(day.date, "d")}</div>
-              {visible.map((item) => (
-                <ItemChip key={`${item.type}-${item.id}`} item={item} />
+              {day.items.map((item, idx) => (
+                <ItemChip
+                  key={`${item.type}-${item.id}`}
+                  item={item}
+                  extra={idx >= VISIBLE_ITEMS_PER_DAY}
+                />
               ))}
               {hiddenCount > 0 && (
                 <button
                   type="button"
+                  className="week-more"
                   onClick={() => setExpanded(i)}
                   style={{
                     all: "unset",
