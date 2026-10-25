@@ -2,13 +2,13 @@ import Link from "next/link";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { toggleHomework } from "@/app/actions/homework";
-import { toggleLecture } from "@/app/actions/lectures";
 import { CheckIcon } from "@/components/icons";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 import { WeekCalendar } from "@/components/WeekCalendar";
+import { WeekLectures, type WeekLectureRow } from "@/components/WeekLectures";
 import { formatTimeRange, resolveLectureTime, timeToMinutes } from "@/lib/lectureTime";
 import type { WeekCalendarItem } from "@/lib/weekCalendar";
 
@@ -23,21 +23,8 @@ type DueRow = {
   dueDate: Date;
 };
 
-type LectureRow = {
-  courseId: string;
-  courseName: string;
-  courseColor: string | null;
-  lectureId: string;
-  number: number;
-  title: string | null;
-  watched: boolean;
-  scheduledDate: Date;
-  /** Effective start time ("HH:MM") and the formatted range for display. */
-  startTime: string | null;
-  timeLabel: string;
-  watchedCount: number;
-  totalCount: number;
-};
+/** What the list renders, plus the start time used only for sorting. */
+type LectureRow = WeekLectureRow & { startTime: string | null };
 
 export default async function WeekPage() {
   const user = await requireUser();
@@ -123,6 +110,7 @@ export default async function WeekPage() {
         id: r.homeworkId,
         type: "homework" as const,
         date: r.dueDate,
+        courseName: r.courseName,
         label: r.name,
         href: `/courses/${r.courseId}`,
         color: r.courseColor,
@@ -131,6 +119,7 @@ export default async function WeekPage() {
       id: l.lectureId,
       type: "lecture" as const,
       date: l.scheduledDate,
+      courseName: l.courseName,
       label: l.title || t(lang, "lectureNumber", l.number),
       time: l.startTime,
       href: `/courses/${l.courseId}`,
@@ -250,98 +239,7 @@ export default async function WeekPage() {
               ? t(lang, "scheduledBetween", `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`)
               : "—"}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {lectureRows.map((l) => (
-              <div
-                key={l.lectureId}
-                style={{ padding: "12px 10px", margin: "0 -10px", borderRadius: "var(--radius-md)" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-                  <form action={toggleLecture as (fd: FormData) => void}>
-                    <input type="hidden" name="id" value={l.lectureId} />
-                    <input type="hidden" name="courseId" value={l.courseId} />
-                    <button
-                      type="submit"
-                      className="check-box"
-                      aria-pressed={l.watched}
-                      aria-label={`${l.watched ? t(lang, "markUnwatched") : t(lang, "markWatched")}: ${l.title ?? t(lang, "lectureNumber", l.number)}`}
-                    >
-                      <CheckIcon checked={l.watched} />
-                    </button>
-                  </form>
-                  <Link href={`/courses/${l.courseId}`} style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: 11,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                        color: "var(--color-neutral-600)",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: "50%",
-                          background: l.courseColor ?? "var(--color-accent)",
-                        }}
-                      />
-                      {l.courseName}
-                    </span>
-                    <span style={{ display: "block", fontSize: "14.5px", marginTop: 4 }}>
-                      {l.title || t(lang, "lectureNumber", l.number)}
-                    </span>
-                    {l.timeLabel && (
-                      <span
-                        dir="ltr"
-                        style={{
-                          display: "block",
-                          fontSize: "11.5px",
-                          color: "var(--color-neutral-600)",
-                          marginTop: 2,
-                          fontFeatureSettings: "'tnum' 1",
-                        }}
-                      >
-                        {l.timeLabel}
-                      </span>
-                    )}
-                  </Link>
-                  <span
-                    style={{
-                      flex: "none",
-                      fontSize: "11.5px",
-                      color: "var(--color-neutral-500)",
-                      fontFeatureSettings: "'tnum' 1",
-                    }}
-                  >
-                    {l.watchedCount}/{l.totalCount}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    height: 5,
-                    borderRadius: 99,
-                    background: "var(--color-neutral-300)",
-                    overflow: "hidden",
-                    marginBlockStart: 11,
-                    marginInlineStart: 36,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${l.totalCount ? (l.watchedCount / l.totalCount) * 100 : 0}%`,
-                      height: "100%",
-                      background: l.courseColor ?? "var(--color-accent)",
-                      borderRadius: 99,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <WeekLectures rows={lectureRows} lang={lang} now={now} />
           {lectureRows.length === 0 && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
               {active ? t(lang, "emptyLectures") : t(lang, "noSemesterInProgress")}

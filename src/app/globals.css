@@ -610,3 +610,44 @@ label.file-drop {
 [dir="rtl"] .back-arrow {
   transform: scaleX(-1);
 }
+
+/* "This week at a glance": seven columns on wide screens, one card per day
+   on phones. Overflow chips are hidden with CSS (not sliced in JS) so the
+   phone layout can simply show them all. */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+/* !important: the chips set display inline, which would otherwise win. */
+.week-day[data-collapsed="true"] .week-chip-extra {
+  display: none !important;
+}
+@media (max-width: 720px) {
+  .week-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .week-day {
+    min-height: 0 !important;
+    padding: 10px !important;
+  }
+  .week-day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .week-day[data-collapsed="true"] .week-chip-extra {
+    display: flex !important;
+  }
+  .week-more {
+    display: none !important;
+  }
+}
+
+/* Keep the header inside a phone-width viewport: the theme button drops its
+   text label (the icon and aria-label remain). */
+@media (max-width: 520px) {
+  .theme-label {
+    display: none;
+  }
+}
