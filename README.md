@@ -233,6 +233,10 @@ you're setting this up fresh:
   so do that manually afterward once you've confirmed the app reads
   correctly with the `R2_*` variables set.
 
+## How it was built
+
+I built Student Keep by directing Claude Code, Anthropic's AI coding agent. Claude Code wrote the code; I did not type it by hand. My part was deciding what to build and in what order, choosing the stack and services (Next.js, Neon Postgres, Cloudflare R2 and Vercel), testing every feature in the real app, reporting bugs, asking for a security review, and deciding what got merged. I use the app every day for my own semester, which is how most of the bugs were found. Building it taught me how to get reliable work out of an AI agent, and where it goes wrong, which is why I test each change in the real app before it ships.
+
 ## Notes on how it's built
 
 - Every page and server action checks the signed-in user server-side before
