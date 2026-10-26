@@ -26,9 +26,10 @@ model User {
   creditsRequired Float? @map("credits_required")
 
   /// Google's long-lived refresh token, used to mint short-lived access
-  /// tokens on demand. Null means "not connected." Same trust boundary as
-  /// passwordHash — the DB itself is the trust perimeter here, same as
-  /// every other secret in this schema; not encrypted at rest.
+  /// tokens on demand. Null means "not connected." Stored encrypted with
+  /// AES-256-GCM (see src/lib/google/tokenCrypto.ts); a value without the
+  /// "enc:v1:" prefix is a legacy plain-text token that gets re-encrypted
+  /// the next time an access token is refreshed.
   googleRefreshToken String? @map("google_refresh_token")
   /// Cached short-lived access token + its expiry, so most syncs don't
   /// need a token-refresh round trip first. Both null when disconnected or
