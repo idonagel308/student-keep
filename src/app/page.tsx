@@ -9,6 +9,7 @@ import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 import { WeekCalendar } from "@/components/WeekCalendar";
 import { WeekLectures, type WeekLectureRow } from "@/components/WeekLectures";
+import { GoogleNotice } from "@/components/GoogleNotice";
 import { formatTimeRange, resolveLectureTime, timeToMinutes } from "@/lib/lectureTime";
 import type { WeekCalendarItem } from "@/lib/weekCalendar";
 
@@ -26,8 +27,14 @@ type DueRow = {
 /** What the list renders, plus the start time used only for sorting. */
 type LectureRow = WeekLectureRow & { startTime: string | null };
 
-export default async function WeekPage() {
+export default async function WeekPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const user = await requireUser();
+  const params = await searchParams;
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const lang = await getLang();
   const semesters = await prisma.semester.findMany({
     where: { userId: user.id },
@@ -136,6 +143,7 @@ export default async function WeekPage() {
 
   return (
     <div className="animate-in" style={{ paddingTop: 52 }}>
+      <GoogleNotice google={first(params.google)} error={first(params.error)} lang={lang} />
       <div style={{ maxWidth: 660 }}>
         <div
           style={{

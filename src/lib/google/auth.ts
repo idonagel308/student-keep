@@ -22,6 +22,23 @@ function requireEnv(name: string): string {
   return value;
 }
 
+const REQUIRED_ENV = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_REDIRECT_URI",
+  "GOOGLE_TOKEN_ENCRYPTION_KEY",
+] as const;
+
+/**
+ * Name of the first environment variable Google sync needs but the server
+ * doesn't have, or null when it's fully configured. Checked before sending a
+ * user to Google so a missing setting shows a clear message instead of a
+ * crash or a silent bounce back to the app.
+ */
+export function getGoogleSetupProblem(): string | null {
+  return REQUIRED_ENV.find((name) => !process.env[name]) ?? null;
+}
+
 /** Builds Google's OAuth authorization URL for the "connect" redirect. */
 export function getConnectUrl(state: string): string {
   const params = new URLSearchParams({

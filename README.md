@@ -178,6 +178,12 @@ Things worth knowing:
 - Sync failures never block saving, and they are not shown in the UI. They
   are logged server-side with a `[google]` prefix, so search your host's logs
   for that when something doesn't show up in Google.
+- If pressing Connect sends you straight back to the home page with a notice
+  that Google sync isn't set up, one of the four `GOOGLE_*` variables
+  (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
+  `GOOGLE_TOKEN_ENCRYPTION_KEY`) is missing on the server. The server log
+  line `[google] cannot connect: <NAME> is not set.` says which. After adding
+  it in your host's settings, redeploy.
 - Tokens are encrypted at rest (AES-256-GCM). If you change or lose
   `GOOGLE_TOKEN_ENCRYPTION_KEY`, users have to disconnect and reconnect.
 
