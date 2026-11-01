@@ -154,10 +154,12 @@ independent toggles control what syncs:
 - **Homework with a due date → Google Tasks** (completion syncs too).
 
 Sync is **one-way**: the app writes to Google and never reads your calendar
-or tasks. Pressing **Save** in Settings pushes everything that's missing from
-Google and tells you how many items synced, or why Google refused (for
-example, the Calendar API isn't enabled). It's safe to press repeatedly. After
-that, creating, editing or deleting an item updates Google, and
+or tasks. Pressing **Save** in Settings makes Google match the app: missing items are
+added, items already in Google get the app's current dates, and items whose
+date you cleared are removed. It then tells you how many items changed, or why
+Google refused (for example, the Calendar API isn't enabled). It's safe to
+press repeatedly, and it replaces any edits you made by hand to synced
+events/tasks in Google. After that, creating, editing or deleting an item updates Google, and
 deleting a course, semester or account removes the matching events/tasks.
 If Google no longer has an item (deleted by hand, say), the next edit
 recreates it. Disconnecting revokes the app's access at Google.
