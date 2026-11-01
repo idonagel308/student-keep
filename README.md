@@ -179,6 +179,10 @@ Things worth knowing:
 - While the consent screen is in **Testing** mode, every person who connects
   must be added under **Test users**, or their connection silently stops
   working after about 7 days.
+- Google limits how fast one user can send requests (its Calendar API
+  reports this as a 403 "rateLimitExceeded"). Calls are paced and retried
+  with growing waits, so a big semester can take several seconds to sync. If a
+  Save ever stops partway, press it again: it only redoes what's left.
 - Events go to the **primary calendar** of the Google account you connected.
   If nothing appears, check you're looking at that account's calendar.
 - Failures during **Save** are shown in Settings. Failures during later

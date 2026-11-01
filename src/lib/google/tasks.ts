@@ -1,3 +1,5 @@
+import { fetchWithRetry } from "./http";
+
 const TASKS_URL = "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks";
 
 export type HomeworkTaskInput = {
@@ -27,7 +29,7 @@ async function callTasks(
   path: string,
   body?: unknown
 ): Promise<Response> {
-  return fetch(`${TASKS_URL}${path}`, {
+  return fetchWithRetry(`${TASKS_URL}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
