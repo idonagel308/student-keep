@@ -30,6 +30,12 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     signupKicker: "Get started",
     signupBlurb: "You need an invite code to create an account.",
     privacyLink: "Privacy note",
+    googleConnectedNotice: "Google is connected. Open Settings to choose what to sync.",
+    googleConfigNotice:
+      "Google sync isn't set up on this server yet, so it can't connect. If you run this site, check the Google settings in the README.",
+    googleErrorNotice:
+      "Couldn't connect Google. It may have been cancelled or timed out. Please try again.",
+    dismiss: "Dismiss",
     signupPrivacyPrefix: "By creating an account you confirm you have read the",
     emailLabel: "Email",
     passwordLabel: "Password",
@@ -279,6 +285,11 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     signupKicker: "בואו נתחיל",
     signupBlurb: "נדרש קוד הזמנה כדי ליצור חשבון.",
     privacyLink: "הודעת פרטיות",
+    googleConnectedNotice: "Google מחובר. פתח/י את ההגדרות כדי לבחור מה לסנכרן.",
+    googleConfigNotice:
+      "סנכרון Google עדיין לא הוגדר בשרת הזה, ולכן אי אפשר להתחבר. אם את/ה מפעיל/ה את האתר, בדוק/י את הגדרות Google ב-README.",
+    googleErrorNotice: "לא הצלחנו לחבר את Google. ייתכן שהחיבור בוטל או שפג תוקפו. נסה/י שוב.",
+    dismiss: "סגירה",
     signupPrivacyPrefix: "בעת יצירת חשבון את/ה מאשר/ת שקראת את",
     emailLabel: "אימייל",
     passwordLabel: "סיסמה",

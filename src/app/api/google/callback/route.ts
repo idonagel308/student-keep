@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   // users their tokens are encrypted at rest.
   if (!isEncryptionConfigured()) {
     console.error("[google] GOOGLE_TOKEN_ENCRYPTION_KEY is not set; refusing to store tokens.");
-    redirect("/?error=google");
+    redirect("/?error=google-config");
   }
 
   let tokens: Awaited<ReturnType<typeof exchangeCodeForTokens>> | null = null;
