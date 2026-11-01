@@ -5,12 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
-import {
-  backfillLectures,
-  backfillHomework,
-  backfillExamDates,
-  type BackfillResult,
-} from "@/lib/google/backfill";
+import { resyncLectures, resyncHomework, resyncExamDates } from "@/lib/google/resync";
+import { describeSyncResult, type SyncResult } from "@/lib/google/batch";
 import { describeGoogleError } from "@/lib/google/errors";
 import type { ActionState } from "@/components/ActionForm";
 
@@ -64,10 +60,10 @@ export async function setDegreeSettings(
 }
 
 /**
- * Saves which resources sync to Google, then syncs anything that is missing,
- * every time (not only when a box is newly ticked). That matters after a
- * reconnect, when the boxes are still ticked but nothing has been pushed yet.
- * Already-synced rows are skipped, so repeating it is harmless. The result is
+ * Saves which resources sync to Google, then makes Google match the app for
+ * each ticked resource, every time (not only when a box is newly ticked):
+ * missing items are added, existing ones get the current dates, and items
+ * whose date was cleared are removed. Repeating it is harmless. The result is
  * reported back to the form: Google errors used to be swallowed, which made a
  * failing sync look identical to a working one.
  */
@@ -96,11 +92,11 @@ export async function setGoogleSyncPreferences(
 
   const jobs: Array<{
     label: string;
-    run: (userId: string, token: string) => Promise<BackfillResult>;
+    run: (userId: string, token: string) => Promise<SyncResult>;
   }> = [];
-  if (nextLectures) jobs.push({ label: "Lectures", run: backfillLectures });
-  if (nextHomework) jobs.push({ label: "Assignments", run: backfillHomework });
-  if (nextExams) jobs.push({ label: "Exam dates", run: backfillExamDates });
+  if (nextLectures) jobs.push({ label: "Lectures", run: resyncLectures });
+  if (nextHomework) jobs.push({ label: "Assignments", run: resyncHomework });
+  if (nextExams) jobs.push({ label: "Exam dates", run: resyncExamDates });
 
   try {
     const accessToken = await getValidAccessToken(user);
@@ -108,22 +104,14 @@ export async function setGoogleSyncPreferences(
 
     const lines: string[] = [];
     let firstError: unknown = null;
-    let anyFailed = false;
     for (const job of jobs) {
       const r = await job.run(user.id, accessToken);
-      if (r.failed > 0) {
-        anyFailed = true;
-        firstError ??= r.firstError;
-        lines.push(`${job.label}: ${r.created} synced, ${r.failed} failed`);
-      } else if (r.created > 0) {
-        lines.push(`${job.label}: ${r.created} synced`);
-      } else {
-        lines.push(`${job.label}: already up to date (items need a date to sync)`);
-      }
+      firstError ??= r.firstError;
+      lines.push(describeSyncResult(job.label, r));
     }
 
     const summary = lines.join(". ") + ".";
-    if (anyFailed) return { error: `${summary} ${describeGoogleError(firstError)}` };
+    if (firstError) return { error: `${summary} ${describeGoogleError(firstError)}` };
     return { message: summary };
   } catch (err) {
     console.error("[google] sync on save failed:", err);
