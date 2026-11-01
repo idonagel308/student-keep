@@ -14,6 +14,9 @@ export function describeGoogleError(err: unknown): string {
   if (lower.includes("unable to authenticate data") || lower.includes("encryption key")) {
     return "The saved Google connection can't be read, probably because the encryption key changed. Disconnect and connect again.";
   }
+  if (lower.includes("ratelimitexceeded") || lower.includes("rate limit exceeded") || status === "429") {
+    return "Google is rate-limiting requests (too many at once). Wait a minute and press Save again; the items that failed will be retried.";
+  }
   if (
     lower.includes("has not been used in project") ||
     lower.includes("service_disabled") ||
@@ -29,9 +32,6 @@ export function describeGoogleError(err: unknown): string {
   }
   if (status === "403") {
     return "Google refused the request (403). Check that you're on the app's test-user list and that both APIs are enabled.";
-  }
-  if (status === "429") {
-    return "Google is rate-limiting requests. Wait a minute and press Save again.";
   }
   return `Google sync failed: ${text.slice(0, 160)}`;
 }

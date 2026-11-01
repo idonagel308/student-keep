@@ -28,6 +28,14 @@ describe("describeGoogleError", () => {
     expect(describeGoogleError(err("Unsupported state or unable to authenticate data"))).toMatch(/encryption key/);
   });
 
+  it("recognises Google's burst limit, which arrives as a 403", () => {
+    const msg = describeGoogleError(
+      err('Google Calendar update failed (403): {"error":{"errors":[{"reason":"rateLimitExceeded"}],"message":"Rate Limit Exceeded"}}')
+    );
+    expect(msg).toMatch(/rate-limiting/);
+    expect(msg).not.toMatch(/test-user/);
+  });
+
   it("falls back by status code, then to the raw text", () => {
     expect(describeGoogleError(err("Google Tasks create failed (401): nope"))).toMatch(/rejected the sign-in/);
     expect(describeGoogleError(err("Google Tasks create failed (403): nope"))).toMatch(/test-user list/);

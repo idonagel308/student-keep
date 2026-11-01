@@ -9,9 +9,11 @@ export type SyncResult = {
   firstError: unknown;
 };
 
-// A handful at a time: much faster than one by one for a semester's worth of
-// lectures, while staying well inside Google's per-user rate limits.
-const CONCURRENCY = 5;
+// A few at a time with a short pause between groups: much faster than one by
+// one for a semester's worth of lectures, but gentle enough to stay under
+// Google's per-user burst limit (requests that still hit it are retried).
+const CONCURRENCY = 3;
+const PAUSE_BETWEEN_BATCHES_MS = 150;
 
 /** Runs `work` over every item in small parallel batches; one failure never stops the rest. */
 export async function runBatches<T>(
@@ -21,6 +23,7 @@ export async function runBatches<T>(
 ): Promise<SyncResult> {
   const result: SyncResult = { created: 0, updated: 0, removed: 0, failed: 0, firstError: null };
   for (let i = 0; i < items.length; i += CONCURRENCY) {
+    if (i > 0) await new Promise((resolve) => setTimeout(resolve, PAUSE_BETWEEN_BATCHES_MS));
     const settled = await Promise.allSettled(items.slice(i, i + CONCURRENCY).map(work));
     settled.forEach((r, j) => {
       if (r.status === "fulfilled") {

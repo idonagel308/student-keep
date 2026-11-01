@@ -1,4 +1,5 @@
 import { minutesToTime, timeToMinutes } from "../lectureTime";
+import { fetchWithRetry } from "./http";
 
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
@@ -112,7 +113,7 @@ async function callCalendar(
   path: string,
   body?: unknown
 ): Promise<Response> {
-  return fetch(`${EVENTS_URL}${path}`, {
+  return fetchWithRetry(`${EVENTS_URL}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
