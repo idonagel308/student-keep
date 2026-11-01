@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
 import { assertOwnsLecture, assertOwnsCourse, requireUser } from "@/lib/dal";
 import { getValidAccessToken } from "@/lib/google/auth";
+import { recordLectureSync, clearLectureSync } from "@/lib/google/syncState";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google/calendar";
 import { parseTimeRange, resolveLectureTime, type TimeRange } from "@/lib/lectureTime";
 import type { ActionState } from "@/components/ActionForm";
@@ -78,18 +79,13 @@ export async function updateLecture(
             endTime: course.lectureEndTime,
           });
           const input = { courseName: course.name, number: lecture.number, title, scheduledDate, ...time };
-          if (lecture.googleEventId) {
-            const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId, input);
-            if (eventId !== lecture.googleEventId) {
-              await prisma.lecture.update({ where: { id }, data: { googleEventId: eventId } });
-            }
-          } else {
-            const eventId = await createCalendarEvent(accessToken, input);
-            await prisma.lecture.update({ where: { id }, data: { googleEventId: eventId } });
-          }
+          const eventId = lecture.googleEventId
+            ? await updateCalendarEvent(accessToken, lecture.googleEventId, input)
+            : await createCalendarEvent(accessToken, input);
+          await recordLectureSync(id, eventId, input);
         } else if (lecture.googleEventId) {
           await deleteCalendarEvent(accessToken, lecture.googleEventId);
-          await prisma.lecture.update({ where: { id }, data: { googleEventId: null } });
+          await clearLectureSync(id);
         }
       }
     } catch (err) {
@@ -152,15 +148,10 @@ export async function scheduleLecturesWeekly(formData: FormData) {
             scheduledDate: dates[i],
             ...time,
           };
-          if (l.googleEventId) {
-            const eventId = await updateCalendarEvent(accessToken, l.googleEventId, input);
-            if (eventId !== l.googleEventId) {
-              await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: eventId } });
-            }
-          } else {
-            const eventId = await createCalendarEvent(accessToken, input);
-            await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: eventId } });
-          }
+          const eventId = l.googleEventId
+            ? await updateCalendarEvent(accessToken, l.googleEventId, input)
+            : await createCalendarEvent(accessToken, input);
+          await recordLectureSync(l.id, eventId, input);
         }
       }
     } catch (err) {

@@ -8,6 +8,7 @@ import { weeklyDate, parseDayOfWeek, parseLectureInterval } from "@/lib/courseSc
 import { parseTimeRange, type TimeRange } from "@/lib/lectureTime";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { backfillLectures } from "@/lib/google/backfill";
+import { recordLectureSync, recordExamSync, clearExamSync } from "@/lib/google/syncState";
 import {
   deleteCalendarEvent,
   createExamEvent,
@@ -262,16 +263,15 @@ export async function updateCourse(
           },
         });
         for (const lecture of synced) {
-          const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId!, {
+          const input = {
             courseName: name,
             number: lecture.number,
             title: lecture.title,
             scheduledDate: lecture.scheduledDate!,
             ...lectureTime,
-          });
-          if (eventId !== lecture.googleEventId) {
-            await prisma.lecture.update({ where: { id: lecture.id }, data: { googleEventId: eventId } });
-          }
+          };
+          const eventId = await updateCalendarEvent(accessToken, lecture.googleEventId!, input);
+          await recordLectureSync(lecture.id, eventId, input);
         }
       }
     } catch (err) {
@@ -321,18 +321,13 @@ export async function setCourseGrade(
       if (accessToken) {
         if (examDate) {
           const input = { courseName: course.name, examDate };
-          if (course.googleExamEventId) {
-            const eventId = await updateExamEvent(accessToken, course.googleExamEventId, input);
-            if (eventId !== course.googleExamEventId) {
-              await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
-            }
-          } else {
-            const eventId = await createExamEvent(accessToken, input);
-            await prisma.course.update({ where: { id }, data: { googleExamEventId: eventId } });
-          }
+          const eventId = course.googleExamEventId
+            ? await updateExamEvent(accessToken, course.googleExamEventId, input)
+            : await createExamEvent(accessToken, input);
+          await recordExamSync(id, eventId, input);
         } else if (course.googleExamEventId) {
           await deleteCalendarEvent(accessToken, course.googleExamEventId);
-          await prisma.course.update({ where: { id }, data: { googleExamEventId: null } });
+          await clearExamSync(id);
         }
       }
     } catch (err) {

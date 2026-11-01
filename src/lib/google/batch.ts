@@ -1,9 +1,11 @@
-export type Outcome = "created" | "updated" | "removed";
+export type Outcome = "created" | "updated" | "removed" | "unchanged";
 
 export type SyncResult = {
   created: number;
   updated: number;
   removed: number;
+  /** Already matched Google, so no request was sent. */
+  unchanged: number;
   failed: number;
   /** The first error seen, so the caller can tell the user why. */
   firstError: unknown;
@@ -21,7 +23,7 @@ export async function runBatches<T>(
   work: (item: T) => Promise<Outcome>,
   describe: (item: T) => string
 ): Promise<SyncResult> {
-  const result: SyncResult = { created: 0, updated: 0, removed: 0, failed: 0, firstError: null };
+  const result: SyncResult = { created: 0, updated: 0, removed: 0, unchanged: 0, failed: 0, firstError: null };
   for (let i = 0; i < items.length; i += CONCURRENCY) {
     if (i > 0) await new Promise((resolve) => setTimeout(resolve, PAUSE_BETWEEN_BATCHES_MS));
     const settled = await Promise.allSettled(items.slice(i, i + CONCURRENCY).map(work));
@@ -38,12 +40,13 @@ export async function runBatches<T>(
   return result;
 }
 
-/** One line for the Settings panel, e.g. "Lectures: 2 added, 17 updated, 1 failed". */
+/** One line for the Settings panel, e.g. "Lectures: 2 updated, 46 already up to date". */
 export function describeSyncResult(label: string, r: SyncResult): string {
   const parts: string[] = [];
   if (r.created) parts.push(`${r.created} added`);
   if (r.updated) parts.push(`${r.updated} updated`);
   if (r.removed) parts.push(`${r.removed} removed`);
+  if (r.unchanged) parts.push(`${r.unchanged} already up to date`);
   if (r.failed) parts.push(`${r.failed} failed`);
   return `${label}: ${parts.length ? parts.join(", ") : "nothing to sync (items need a date to sync)"}`;
 }

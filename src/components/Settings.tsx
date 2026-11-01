@@ -218,6 +218,18 @@ export function Settings({
                       <button type="submit" disabled={pending} className={`${btnPrimary} btn-block`} style={{ marginTop: 4 }}>
                         {pending ? t(lang, "saving") : t(lang, "save")}
                       </button>
+                      <button
+                        type="submit"
+                        name="force"
+                        value="1"
+                        disabled={pending}
+                        className="btn btn-secondary btn-block"
+                      >
+                        {t(lang, "resendAllGoogle")}
+                      </button>
+                      <p style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", margin: 0, lineHeight: 1.5 }}>
+                        {t(lang, "resendAllGoogleNote")}
+                      </p>
                     </div>
                   )}
                 </ActionForm>

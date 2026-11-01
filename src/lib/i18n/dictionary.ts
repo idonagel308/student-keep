@@ -36,6 +36,9 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     googleErrorNotice:
       "Couldn't connect Google. It may have been cancelled or timed out. Please try again.",
     dismiss: "Dismiss",
+    resendAllGoogle: "Re-send everything",
+    resendAllGoogleNote:
+      "Save only sends what changed. Use this if you deleted events or tasks in Google by hand and want them back.",
     signupPrivacyPrefix: "By creating an account you confirm you have read the",
     emailLabel: "Email",
     passwordLabel: "Password",
@@ -290,6 +293,9 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
       "סנכרון Google עדיין לא הוגדר בשרת הזה, ולכן אי אפשר להתחבר. אם את/ה מפעיל/ה את האתר, בדוק/י את הגדרות Google ב-README.",
     googleErrorNotice: "לא הצלחנו לחבר את Google. ייתכן שהחיבור בוטל או שפג תוקפו. נסה/י שוב.",
     dismiss: "סגירה",
+    resendAllGoogle: "שליחה מחדש של הכול",
+    resendAllGoogleNote:
+      "שמירה שולחת רק את מה שהשתנה. השתמש/י בכפתור הזה אם מחקת אירועים או משימות ב-Google ידנית ורוצה אותם בחזרה.",
     signupPrivacyPrefix: "בעת יצירת חשבון את/ה מאשר/ת שקראת את",
     emailLabel: "אימייל",
     passwordLabel: "סיסמה",

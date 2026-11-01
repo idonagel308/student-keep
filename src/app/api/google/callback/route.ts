@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
 import { exchangeCodeForTokens, GOOGLE_OAUTH_STATE_COOKIE } from "@/lib/google/auth";
 import { encryptToken, isEncryptionConfigured } from "@/lib/google/tokenCrypto";
+import { clearSyncHashes } from "@/lib/google/syncState";
 
 export async function GET(request: Request) {
   const user = await requireUser();
@@ -47,6 +48,9 @@ export async function GET(request: Request) {
       googleAccessTokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
     },
   });
+
+  // Possibly a different Google account than before: re-send everything.
+  await clearSyncHashes(user.id);
 
   redirect("/?google=connected");
 }

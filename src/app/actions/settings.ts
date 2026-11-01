@@ -8,6 +8,7 @@ import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
 import { resyncLectures, resyncHomework, resyncExamDates } from "@/lib/google/resync";
 import { describeSyncResult, type SyncResult } from "@/lib/google/batch";
 import { describeGoogleError } from "@/lib/google/errors";
+import { clearSyncHashes } from "@/lib/google/syncState";
 import type { ActionState } from "@/components/ActionForm";
 
 export async function setLanguage(formData: FormData) {
@@ -77,6 +78,9 @@ export async function setGoogleSyncPreferences(
   const nextLectures = formData.has("syncLectures");
   const nextHomework = formData.has("syncHomework");
   const nextExams = formData.has("syncExams");
+  // "Re-send everything": forget what Google is known to hold so every item
+  // is sent again (e.g. after events were deleted by hand in Google).
+  const force = formData.has("force");
 
   await prisma.user.update({
     where: { id: user.id },
@@ -87,6 +91,7 @@ export async function setGoogleSyncPreferences(
     },
   });
   revalidatePath("/");
+  if (force) await clearSyncHashes(user.id);
 
   if (!nextLectures && !nextHomework && !nextExams) return { message: "Saved." };
 
@@ -127,6 +132,9 @@ export async function setGoogleSyncPreferences(
 export async function disconnectGoogleCalendar() {
   const user = await requireUser();
   if (user.googleRefreshToken) await revokeGoogleToken(user.googleRefreshToken);
+  // A later connection may be to a different Google account, so nothing can
+  // be assumed to still exist there.
+  await clearSyncHashes(user.id);
 
   await prisma.user.update({
     where: { id: user.id },
