@@ -102,6 +102,8 @@ model Course {
   /// The Google Calendar event id this exam date is mirrored to. Null if
   /// never synced (sync off, not connected, no examDate, or sync failed).
   googleExamEventId String? @map("google_exam_event_id")
+  /// Fingerprint of what was last sent for the exam event; see Lecture.
+  googleExamSyncHash String? @map("google_exam_sync_hash")
 
   /// 0 (Sunday) - 6 (Saturday), matching JS Date#getDay(). Null means "not
   /// set" — new lectures then fall back to the semester's own start-date
@@ -156,6 +158,10 @@ model Lecture {
   /// Null if never synced (sync off, not connected, no scheduledDate yet,
   /// or sync failed).
   googleEventId String? @map("google_event_id")
+  /// Fingerprint of what was last sent to Google for this lecture (see
+  /// src/lib/google/fingerprint.ts). Lets Save skip lectures that haven't
+  /// changed. Always written together with googleEventId.
+  googleSyncHash String? @map("google_sync_hash")
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
@@ -195,6 +201,8 @@ model Homework {
   /// The Google Tasks task id this homework is mirrored to. Null if never
   /// synced (sync off, not connected, no dueDate, or sync failed).
   googleTaskId String? @map("google_task_id")
+  /// Fingerprint of what was last sent to Google Tasks; see Lecture.
+  googleSyncHash String? @map("google_sync_hash")
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 

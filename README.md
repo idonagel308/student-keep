@@ -155,11 +155,14 @@ independent toggles control what syncs:
 
 Sync is **one-way**: the app writes to Google and never reads your calendar
 or tasks. Pressing **Save** in Settings makes Google match the app: missing items are
-added, items already in Google get the app's current dates, and items whose
-date you cleared are removed. It then tells you how many items changed, or why
-Google refused (for example, the Calendar API isn't enabled). It's safe to
-press repeatedly, and it replaces any edits you made by hand to synced
-events/tasks in Google. After that, creating, editing or deleting an item updates Google, and
+added, items whose title, date, time or done-state changed are updated, and
+items whose date you cleared are removed. Only items that changed since the
+last sync are sent (the app stores a fingerprint of what each Google item
+holds), so repeating Save is quick and sends nothing when nothing changed. It
+then tells you how many items changed, or why Google refused (for example, the
+Calendar API isn't enabled). If you deleted events or tasks in Google by hand,
+press **Re-send everything**, which ignores the fingerprints; disconnecting or
+connecting a Google account does the same. After that, creating, editing or deleting an item updates Google, and
 deleting a course, semester or account removes the matching events/tasks.
 If Google no longer has an item (deleted by hand, say), the next edit
 recreates it. Disconnecting revokes the app's access at Google.

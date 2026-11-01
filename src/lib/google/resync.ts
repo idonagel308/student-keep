@@ -8,6 +8,15 @@ import {
   createExamEvent,
   updateExamEvent,
 } from "@/lib/google/calendar";
+import { lectureFingerprint, examFingerprint, taskFingerprint } from "@/lib/google/fingerprint";
+import {
+  recordLectureSync,
+  clearLectureSync,
+  recordHomeworkSync,
+  clearHomeworkSync,
+  recordExamSync,
+  clearExamSync,
+} from "@/lib/google/syncState";
 import { createTask, updateTask, deleteTask } from "@/lib/google/tasks";
 import { resolveLectureTime } from "@/lib/lectureTime";
 import { runBatches, type SyncResult } from "@/lib/google/batch";
@@ -16,8 +25,9 @@ import { runBatches, type SyncResult } from "@/lib/google/batch";
  * Makes Google match the app. Unlike the create-only backfills, a resync
  * also pushes the current dates to items that already exist in Google (an
  * update that recreates the item if it was deleted there), and removes the
- * Google item when the date was cleared in the app. Safe to run repeatedly.
- * This is what "Save" in Settings runs.
+ * Google item when the date was cleared in the app. Items whose stored
+ * fingerprint still matches what we would send are skipped without a
+ * request, so repeating it is cheap. This is what "Save" in Settings runs.
  */
 
 export function resyncLectures(userId: string, accessToken: string): Promise<SyncResult> {
@@ -35,7 +45,7 @@ export function resyncLectures(userId: string, accessToken: string): Promise<Syn
         async (l) => {
           if (!l.scheduledDate) {
             await deleteCalendarEvent(accessToken, l.googleEventId!);
-            await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: null } });
+            await clearLectureSync(l.id);
             return "removed";
           }
           const time = resolveLectureTime(
@@ -50,14 +60,13 @@ export function resyncLectures(userId: string, accessToken: string): Promise<Syn
             ...time,
           };
           if (l.googleEventId) {
+            if (l.googleSyncHash === lectureFingerprint(input)) return "unchanged";
             const id = await updateCalendarEvent(accessToken, l.googleEventId, input);
-            if (id !== l.googleEventId) {
-              await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: id } });
-            }
+            await recordLectureSync(l.id, id, input);
             return "updated";
           }
           const id = await createCalendarEvent(accessToken, input);
-          await prisma.lecture.update({ where: { id: l.id }, data: { googleEventId: id } });
+          await recordLectureSync(l.id, id, input);
           return "created";
         },
         (l) => `lecture ${l.id}`
@@ -80,7 +89,7 @@ export function resyncHomework(userId: string, accessToken: string): Promise<Syn
         async (h) => {
           if (!h.dueDate) {
             await deleteTask(accessToken, h.googleTaskId!);
-            await prisma.homework.update({ where: { id: h.id }, data: { googleTaskId: null } });
+            await clearHomeworkSync(h.id);
             return "removed";
           }
           const input = {
@@ -91,14 +100,13 @@ export function resyncHomework(userId: string, accessToken: string): Promise<Syn
             completed: h.completed,
           };
           if (h.googleTaskId) {
+            if (h.googleSyncHash === taskFingerprint(input)) return "unchanged";
             const id = await updateTask(accessToken, h.googleTaskId, input);
-            if (id !== h.googleTaskId) {
-              await prisma.homework.update({ where: { id: h.id }, data: { googleTaskId: id } });
-            }
+            await recordHomeworkSync(h.id, id, input);
             return "updated";
           }
           const id = await createTask(accessToken, input);
-          await prisma.homework.update({ where: { id: h.id }, data: { googleTaskId: id } });
+          await recordHomeworkSync(h.id, id, input);
           return "created";
         },
         (h) => `homework ${h.id}`
@@ -120,19 +128,18 @@ export function resyncExamDates(userId: string, accessToken: string): Promise<Sy
         async (c) => {
           if (!c.examDate) {
             await deleteCalendarEvent(accessToken, c.googleExamEventId!);
-            await prisma.course.update({ where: { id: c.id }, data: { googleExamEventId: null } });
+            await clearExamSync(c.id);
             return "removed";
           }
           const input = { courseName: c.name, examDate: c.examDate };
           if (c.googleExamEventId) {
+            if (c.googleExamSyncHash === examFingerprint(input)) return "unchanged";
             const id = await updateExamEvent(accessToken, c.googleExamEventId, input);
-            if (id !== c.googleExamEventId) {
-              await prisma.course.update({ where: { id: c.id }, data: { googleExamEventId: id } });
-            }
+            await recordExamSync(c.id, id, input);
             return "updated";
           }
           const id = await createExamEvent(accessToken, input);
-          await prisma.course.update({ where: { id: c.id }, data: { googleExamEventId: id } });
+          await recordExamSync(c.id, id, input);
           return "created";
         },
         (c) => `exam date for course ${c.id}`
