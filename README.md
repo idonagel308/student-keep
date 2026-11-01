@@ -154,8 +154,10 @@ independent toggles control what syncs:
 - **Homework with a due date → Google Tasks** (completion syncs too).
 
 Sync is **one-way**: the app writes to Google and never reads your calendar
-or tasks. Switching a toggle on backfills everything that already exists.
-After that, creating, editing or deleting an item updates Google, and
+or tasks. Pressing **Save** in Settings pushes everything that's missing from
+Google and tells you how many items synced, or why Google refused (for
+example, the Calendar API isn't enabled). It's safe to press repeatedly. After
+that, creating, editing or deleting an item updates Google, and
 deleting a course, semester or account removes the matching events/tasks.
 If Google no longer has an item (deleted by hand, say), the next edit
 recreates it. Disconnecting revokes the app's access at Google.
@@ -175,9 +177,12 @@ Things worth knowing:
 - While the consent screen is in **Testing** mode, every person who connects
   must be added under **Test users**, or their connection silently stops
   working after about 7 days.
-- Sync failures never block saving, and they are not shown in the UI. They
-  are logged server-side with a `[google]` prefix, so search your host's logs
-  for that when something doesn't show up in Google.
+- Events go to the **primary calendar** of the Google account you connected.
+  If nothing appears, check you're looking at that account's calendar.
+- Failures during **Save** are shown in Settings. Failures during later
+  automatic syncs (editing a lecture, say) never block saving and are only
+  logged server-side with a `[google]` prefix, so search your host's logs for
+  that when something doesn't show up in Google.
 - If pressing Connect sends you straight back to the home page with a notice
   that Google sync isn't set up, one of the four `GOOGLE_*` variables
   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,

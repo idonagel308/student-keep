@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef } from "react";
 
-export type ActionState = { error: string } | undefined;
+/** `error` blocks success handling; `message` is an optional success note. */
+export type ActionState = { error?: string; message?: string } | undefined;
 
 type Props = {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
@@ -45,8 +46,13 @@ export function ActionForm({
     <form ref={formRef} action={formAction} className={className}>
       {children(pending)}
       {state?.error && (
-        <p className="mt-2 text-sm" style={{ color: "var(--color-accent-2)" }}>
+        <p className="mt-2 text-sm" role="alert" style={{ color: "var(--color-accent-2)" }}>
           {state.error}
+        </p>
+      )}
+      {!state?.error && state?.message && (
+        <p className="mt-2 text-sm" role="status" style={{ color: "var(--color-accent-700)" }}>
+          {state.message}
         </p>
       )}
     </form>
