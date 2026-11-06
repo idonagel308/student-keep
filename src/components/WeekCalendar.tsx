@@ -76,10 +76,12 @@ export function WeekCalendar({
   weekStart,
   items,
   lang,
+  title,
 }: {
   weekStart: Date;
   items: WeekCalendarItem[];
   lang: Lang;
+  title: string;
 }) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const days = buildWeekDays(weekStart, items);
@@ -87,7 +89,7 @@ export function WeekCalendar({
 
   return (
     <section style={{ marginTop: 48 }}>
-      <h2 style={{ fontSize: 24, margin: "0 0 20px" }}>{t(lang, "weekAtAGlance")}</h2>
+      <h2 style={{ fontSize: 24, margin: "0 0 20px" }}>{title}</h2>
       <div className="week-grid">
         {days.map((day, i) => {
           const isToday = sameCalendarDay(day.date, today);
