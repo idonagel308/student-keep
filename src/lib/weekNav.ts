@@ -21,6 +21,8 @@ export type WeekNav = {
   isCurrentWeek: boolean;
   /** Whole weeks from the current week: -1 last week, 0 this week, 1 next week. */
   offset: number;
+  /** How to name the week in words, or null to show its dates instead. */
+  relative: "this" | "next" | "last" | null;
   prevHref: string;
   nextHref: string;
 };
@@ -62,6 +64,7 @@ export function resolveWeek(raw: string | string[] | undefined, now: Date): Week
     weekEnd,
     isCurrentWeek: offset === 0,
     offset,
+    relative: offset === 0 ? "this" : offset === 1 ? "next" : offset === -1 ? "last" : null,
     prevHref: weekHref(addWeeks(weekStart, -1), now),
     nextHref: weekHref(addWeeks(weekStart, 1), now),
   };

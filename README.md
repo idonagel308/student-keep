@@ -23,8 +23,9 @@ people you hand the code to yourself.
   currently active (grouped by day, with their times), and a 7-day calendar
   showing both at a glance. Calendar entries lead with the course name and
   carry the course's color; on phones the calendar becomes one card per day.
-  **Previous week / Next week** buttons move between weeks (the week is in the
-  URL as `/?week=YYYY-MM-DD`, so Back and bookmarks work). Other weeks list
+  A single **← week →** switcher moves between weeks; its middle names the
+  week shown and jumps back to the current one (the week is in the URL as
+  `/?week=YYYY-MM-DD`, so Back and bookmarks work). Other weeks list
   only what's due in that week; the current week also keeps anything overdue.
 - **Degree overview** — credits-weighted average across every graded course,
   a per-semester breakdown, and a list of graded courses searchable by name
