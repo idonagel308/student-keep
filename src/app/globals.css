@@ -604,9 +604,11 @@ label.file-drop {
 /* Back-link arrows are a literal "←" character, not an SVG — mirror it
    under RTL rather than swapping to a different glyph, so bold/italic
    Markdown-adjacent copy still just reads as plain text. */
-.back-arrow {
+.back-arrow,
+.nav-arrow {
   display: inline-block;
 }
+[dir="rtl"] .nav-arrow,
 [dir="rtl"] .back-arrow {
   transform: scaleX(-1);
 }
@@ -649,5 +651,26 @@ label.file-drop {
 @media (max-width: 520px) {
   .theme-label {
     display: none;
+  }
+}
+
+/* Previous / next week links on the "This week" page. */
+.week-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.week-nav .btn {
+  font-size: 12.5px;
+  gap: 6px;
+  text-decoration: none;
+}
+@media (max-width: 520px) {
+  .week-nav {
+    gap: 6px;
+  }
+  .week-nav .btn {
+    padding-inline: 10px;
   }
 }

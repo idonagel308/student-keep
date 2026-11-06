@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { startOfWeek, endOfWeek, format } from "date-fns";
+import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { toggleHomework } from "@/app/actions/homework";
 import { CheckIcon } from "@/components/icons";
@@ -8,24 +8,13 @@ import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
 import { t } from "@/lib/i18n/t";
 import { WeekCalendar } from "@/components/WeekCalendar";
-import { WeekLectures, type WeekLectureRow } from "@/components/WeekLectures";
+import { WeekLectures } from "@/components/WeekLectures";
+import { WeekNav } from "@/components/WeekNav";
 import { GoogleNotice } from "@/components/GoogleNotice";
-import { formatTimeRange, resolveLectureTime, timeToMinutes } from "@/lib/lectureTime";
-import type { WeekCalendarItem } from "@/lib/weekCalendar";
+import { resolveWeek } from "@/lib/weekNav";
+import { buildWeekView } from "@/lib/weekView";
 
 export const dynamic = "force-dynamic";
-
-type DueRow = {
-  courseId: string;
-  courseName: string;
-  courseColor: string | null;
-  homeworkId: string;
-  name: string;
-  dueDate: Date;
-};
-
-/** What the list renders, plus the start time used only for sorting. */
-type LectureRow = WeekLectureRow & { startTime: string | null };
 
 export default async function WeekPage({
   searchParams,
@@ -45,101 +34,27 @@ export default async function WeekPage({
   });
 
   const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+  const nav = resolveWeek(params.week, now);
+  const { weekStart, weekEnd, isCurrentWeek } = nav;
+  const { semester, dueRows, lectureRows, calendarItems, overdueCount } = buildWeekView(semesters, {
+    weekStart,
+    weekEnd,
+    isCurrentWeek,
+    now,
+    lectureLabel: (n) => t(lang, "lectureNumber", n),
+  });
 
-  // "This week" is scoped to whichever semester is currently in progress —
-  // due-homework spans every semester (below), but the lecture schedule
-  // only makes sense against the one term actually running right now.
-  const active = semesters.find((s) => s.startDate <= now && s.endDate >= now) ?? null;
-
-  const dueRows: DueRow[] = [];
-  for (const s of semesters) {
-    for (const c of s.courses) {
-      for (const h of c.homework) {
-        if (h.completed || !h.dueDate || h.dueDate > weekEnd) continue;
-        dueRows.push({
-          courseId: c.id,
-          courseName: c.name,
-          courseColor: c.color,
-          homeworkId: h.id,
-          name: h.name,
-          dueDate: h.dueDate,
-        });
-      }
-    }
-  }
-  dueRows.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-  const overdueCount = dueRows.filter((r) => dueStatus(r.dueDate) === "overdue").length;
-
-  const lectureRows: LectureRow[] = [];
-  if (active) {
-    for (const c of active.courses) {
-      const watchedCount = c.lectures.filter((l) => l.watched).length;
-      for (const l of c.lectures) {
-        if (!l.scheduledDate || l.scheduledDate < weekStart || l.scheduledDate > weekEnd) continue;
-        const time = resolveLectureTime(
-          { startTime: l.startTime, endTime: l.endTime },
-          { startTime: c.lectureStartTime, endTime: c.lectureEndTime }
-        );
-        lectureRows.push({
-          courseId: c.id,
-          courseName: c.name,
-          courseColor: c.color,
-          lectureId: l.id,
-          number: l.number,
-          title: l.title,
-          watched: l.watched,
-          scheduledDate: l.scheduledDate,
-          startTime: time.startTime,
-          timeLabel: formatTimeRange(time),
-          watchedCount,
-          totalCount: c.lectures.length,
-        });
-      }
-    }
-  }
-  lectureRows.sort(
-    (a, b) =>
-      a.scheduledDate.getTime() - b.scheduledDate.getTime() ||
-      // Same day: earlier lecture first, lectures with no time last.
-      (a.startTime ? timeToMinutes(a.startTime) : Infinity) -
-        (b.startTime ? timeToMinutes(b.startTime) : Infinity)
-  );
-
-  // Same rows already computed above, just reshaped for the week-grid view
-  // below — no extra query. Overdue homework (due before weekStart) is
-  // intentionally excluded here; it's already surfaced in the list above.
-  const calendarItems: WeekCalendarItem[] = [
-    ...dueRows
-      .filter((r) => r.dueDate >= weekStart)
-      .map((r) => ({
-        id: r.homeworkId,
-        type: "homework" as const,
-        date: r.dueDate,
-        courseName: r.courseName,
-        label: r.name,
-        href: `/courses/${r.courseId}`,
-        color: r.courseColor,
-      })),
-    ...lectureRows.map((l) => ({
-      id: l.lectureId,
-      type: "lecture" as const,
-      date: l.scheduledDate,
-      courseName: l.courseName,
-      label: l.title || t(lang, "lectureNumber", l.number),
-      time: l.startTime,
-      href: `/courses/${l.courseId}`,
-      color: l.courseColor,
-    })),
-  ];
-
-  const headline =
-    dueRows.length === 0
+  const range = `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`;
+  const headline = isCurrentWeek
+    ? dueRows.length === 0
       ? t(lang, "nothingDueThisWeek")
       : overdueCount > 0
         ? t(lang, "overdueCount", overdueCount)
-        : t(lang, "dueCount", dueRows.length);
+        : t(lang, "dueCount", dueRows.length)
+    : dueRows.length === 0
+      ? t(lang, "nothingDueThatWeek")
+      : t(lang, "dueCountThatWeek", dueRows.length);
+  const noSemester = isCurrentWeek ? t(lang, "noSemesterInProgress") : t(lang, "noSemesterThatWeek");
 
   return (
     <div className="animate-in" style={{ paddingTop: 52 }}>
@@ -154,13 +69,14 @@ export default async function WeekPage({
             marginBottom: 9,
           }}
         >
-          {t(lang, "weekOf", `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`)}
+          {t(lang, "weekOf", range)}
         </div>
+        <WeekNav nav={nav} lang={lang} />
         <h1 style={{ fontSize: "clamp(38px,6vw,56px)", margin: "0 0 12px" }}>{headline}</h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
-          {active
-            ? `${active.name} · ${formatDate(active.startDate)} – ${formatDate(active.endDate)}`
-            : t(lang, "noSemesterInProgress")}
+          {semester
+            ? `${semester.name} · ${formatDate(semester.startDate)} – ${formatDate(semester.endDate)}`
+            : noSemester}
         </p>
       </div>
 
@@ -173,9 +89,15 @@ export default async function WeekPage({
         }}
       >
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>{t(lang, "dueThisWeek")}</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>
+            {isCurrentWeek ? t(lang, "dueThisWeek") : t(lang, "dueThatWeek")}
+          </h2>
           <p style={{ fontSize: "12.5px", color: "var(--color-neutral-600)", margin: "0 0 20px" }}>
-            {overdueCount > 0 ? t(lang, "overdueFirst") : t(lang, "byEndOfWeek")}
+            {!isCurrentWeek
+              ? t(lang, "dueBetween", range)
+              : overdueCount > 0
+                ? t(lang, "overdueFirst")
+                : t(lang, "byEndOfWeek")}
           </p>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {dueRows.map((r) => (
@@ -235,28 +157,40 @@ export default async function WeekPage({
           </div>
           {dueRows.length === 0 && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-              {t(lang, "emptyDue")}
+              {isCurrentWeek ? t(lang, "emptyDue") : t(lang, "nothingDueThatWeek")}
             </p>
           )}
         </section>
 
         <section>
-          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>{t(lang, "lecturesThisWeek")}</h2>
+          <h2 style={{ fontSize: 24, margin: "0 0 4px" }}>
+            {isCurrentWeek ? t(lang, "lecturesThisWeek") : t(lang, "lecturesThatWeek")}
+          </h2>
           <p style={{ fontSize: "12.5px", color: "var(--color-neutral-600)", margin: "0 0 20px" }}>
-            {active
-              ? t(lang, "scheduledBetween", `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`)
-              : "—"}
+            {semester ? t(lang, "scheduledBetween", range) : "—"}
           </p>
           <WeekLectures rows={lectureRows} lang={lang} now={now} />
           {lectureRows.length === 0 && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", fontStyle: "italic" }}>
-              {active ? t(lang, "emptyLectures") : t(lang, "noSemesterInProgress")}
+              {!semester
+                ? noSemester
+                : isCurrentWeek
+                  ? t(lang, "emptyLectures")
+                  : t(lang, "emptyLecturesThatWeek")}
             </p>
           )}
         </section>
       </div>
 
-      <WeekCalendar weekStart={weekStart} items={calendarItems} lang={lang} />
+      <WeekCalendar
+        // Keyed by week so a day expanded with "+N more" doesn't stay expanded
+        // on the next week.
+        key={weekStart.toISOString()}
+        weekStart={weekStart}
+        items={calendarItems}
+        lang={lang}
+        title={isCurrentWeek ? t(lang, "weekAtAGlance") : t(lang, "weekAtAGlanceOther")}
+      />
     </div>
   );
 }
