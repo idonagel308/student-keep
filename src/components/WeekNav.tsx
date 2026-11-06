@@ -4,30 +4,45 @@ import type { Lang } from "@/lib/i18n/dictionary";
 import type { WeekNav as WeekNavData } from "@/lib/weekNav";
 
 /**
- * Previous / next week links for the "This week" page. Plain links to
- * "/?week=YYYY-MM-DD", so the browser's back button and bookmarks work and no
- * client JavaScript is needed. "This week" only appears away from it.
+ * One control for moving between weeks: ← [week] →. The middle names the
+ * week shown ("This week", "Next week", "Last week", or its dates further
+ * out) and, away from the current week, links back to it. Plain links to
+ * "/?week=YYYY-MM-DD", so Back and bookmarks work without client JavaScript.
  */
-export function WeekNav({ nav, lang }: { nav: WeekNavData; lang: Lang }) {
+export function WeekNav({ nav, lang, rangeLabel }: { nav: WeekNavData; lang: Lang; rangeLabel: string }) {
+  const label =
+    nav.relative === "this"
+      ? t(lang, "week")
+      : nav.relative === "next"
+        ? t(lang, "nextWeek")
+        : nav.relative === "last"
+          ? t(lang, "lastWeek")
+          : rangeLabel;
+
   return (
     <nav aria-label={t(lang, "weekNavLabel")} className="week-nav">
-      <Link href={nav.prevHref} className="btn btn-secondary" rel="prev">
+      <Link href={nav.prevHref} className="week-nav-step" rel="prev" aria-label={t(lang, "prevWeek")}>
         <span className="nav-arrow" aria-hidden="true">
           ←
         </span>
-        {t(lang, "prevWeek")}
       </Link>
-      <Link href={nav.nextHref} className="btn btn-secondary" rel="next">
-        {t(lang, "nextWeek")}
+      {nav.isCurrentWeek ? (
+        <span className="week-nav-label">{label}</span>
+      ) : (
+        <Link
+          href="/"
+          className="week-nav-label"
+          title={t(lang, "backToThisWeek")}
+          aria-label={`${label} – ${t(lang, "backToThisWeek")}`}
+        >
+          {label}
+        </Link>
+      )}
+      <Link href={nav.nextHref} className="week-nav-step" rel="next" aria-label={t(lang, "nextWeek")}>
         <span className="nav-arrow" aria-hidden="true">
           →
         </span>
       </Link>
-      {!nav.isCurrentWeek && (
-        <Link href="/" className="btn btn-ghost">
-          {t(lang, "week")}
-        </Link>
-      )}
     </nav>
   );
 }

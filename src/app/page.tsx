@@ -71,7 +71,7 @@ export default async function WeekPage({
         >
           {t(lang, "weekOf", range)}
         </div>
-        <WeekNav nav={nav} lang={lang} />
+        <WeekNav nav={nav} lang={lang} rangeLabel={range} />
         <h1 style={{ fontSize: "clamp(38px,6vw,56px)", margin: "0 0 12px" }}>{headline}</h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
           {semester

@@ -77,6 +77,16 @@ describe("resolveWeek", () => {
     expect(nav.isCurrentWeek).toBe(true);
   });
 
+  it.each([
+    [undefined, "this"],
+    ["2026-11-15", "next"],
+    ["2026-11-01", "last"],
+    ["2026-11-22", null],
+    ["2026-10-25", null],
+  ] as const)("names the week %s as %s in the switcher", (raw, relative) => {
+    expect(resolveWeek(raw, NOW).relative).toBe(relative);
+  });
+
   it("uses the first value when ?week= is repeated", () => {
     expect(day(resolveWeek(["2026-11-15", "2027-01-01"], NOW).weekStart)).toBe("2026-11-15");
   });
