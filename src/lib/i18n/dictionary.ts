@@ -65,6 +65,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     groupComplete: "Completed",
     courseCount: (n) => `${n} ${n === 1 ? "course" : "courses"}`,
     lectureCount: (w, t) => `${w}/${t} lectures`,
+    homeworkCount: (d, t) => `${d}/${t} homework`,
 
     // semester detail
     semesterName: "Semester name",
@@ -75,10 +76,10 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     noCoursesYet: "No courses yet. Add your first one below.",
     deleteCourseConfirm: "Delete this course and all its lectures and homework?",
     pace: "Pace",
-    onTrack: "On pace — watched everything scheduled so far.",
-    aheadBy: (n) => (n === 1 ? "One lecture ahead of schedule." : `${n} lectures ahead of schedule.`),
-    behindBy: (n) => (n === 1 ? "One lecture behind schedule." : `${n} lectures behind schedule.`),
-    expectedBy: (n) => `${n} scheduled to date`,
+    onTrack: "On pace — finished everything due so far.",
+    aheadBy: (n) => (n === 1 ? "One item ahead of schedule." : `${n} items ahead of schedule.`),
+    behindBy: (n) => (n === 1 ? "One item behind schedule." : `${n} items behind schedule.`),
+    expectedBy: (n) => `${n} due to date`,
     semesterElapsed: (n) => `${n}% of the term elapsed`,
 
     // course detail
@@ -334,6 +335,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     groupComplete: "הושלמו",
     courseCount: (n) => (n === 1 ? "קורס אחד" : `${n} קורסים`),
     lectureCount: (w, t) => `${w}/${t} הרצאות`,
+    homeworkCount: (d, t) => `${d}/${t} מטלות`,
 
     semesterName: "שם הסמסטר",
     startDate: "תאריך התחלה",
@@ -343,10 +345,10 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     noCoursesYet: "עדיין אין קורסים. הוסיפו את הראשון למטה.",
     deleteCourseConfirm: "למחוק את הקורס הזה, ההרצאות והמטלות שלו?",
     pace: "קצב",
-    onTrack: "בקצב — נצפה כל מה שתוזמן עד כה.",
-    aheadBy: (n) => (n === 1 ? "הרצאה אחת לפני הלו״ז." : `${n} הרצאות לפני הלו״ז.`),
-    behindBy: (n) => (n === 1 ? "הרצאה אחת מאחורי הלו״ז." : `${n} הרצאות מאחורי הלו״ז.`),
-    expectedBy: (n) => `${n} מתוזמנות עד כה`,
+    onTrack: "בקצב — הושלם כל מה שהיה אמור להסתיים עד כה.",
+    aheadBy: (n) => (n === 1 ? "פריט אחד לפני הלו״ז." : `${n} פריטים לפני הלו״ז.`),
+    behindBy: (n) => (n === 1 ? "פריט אחד מאחורי הלו״ז." : `${n} פריטים מאחורי הלו״ז.`),
+    expectedBy: (n) => `${n} מתוזמנים עד כה`,
     semesterElapsed: (n) => `${n}% מהסמסטר חלפו`,
 
     courseName: "שם הקורס",

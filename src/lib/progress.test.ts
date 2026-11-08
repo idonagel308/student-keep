@@ -1,5 +1,68 @@
 import { describe, it, expect } from "vitest";
-import { gpaStats } from "./progress";
+import { gpaStats, semesterProgress, semesterPace, type CourseWithChildren } from "./progress";
+
+const NOW = new Date("2026-11-08T12:00:00Z");
+const past = new Date("2026-11-01T12:00:00Z");
+const future = new Date("2026-11-20T12:00:00Z");
+
+// Only the fields progress.ts reads; cast keeps the fixtures short.
+const course = (
+  lectures: { watched: boolean; scheduledDate: Date | null }[],
+  homework: { completed: boolean; dueDate: Date | null }[]
+) => ({ lectures, homework }) as unknown as CourseWithChildren;
+
+describe("semesterProgress", () => {
+  it("counts lectures and homework together in the percentage", () => {
+    const p = semesterProgress([
+      course(
+        [
+          { watched: true, scheduledDate: null },
+          { watched: false, scheduledDate: null },
+        ],
+        [
+          { completed: true, dueDate: null },
+          { completed: true, dueDate: null },
+        ]
+      ),
+    ]);
+    expect(p.totalItems).toBe(4);
+    expect(p.doneItems).toBe(3);
+    expect(p.pct).toBe(75);
+  });
+
+  it("includes homework even when the course has no lectures", () => {
+    const p = semesterProgress([course([], [{ completed: true, dueDate: null }])]);
+    expect(p.pct).toBe(100);
+  });
+
+  it("returns 0% (not NaN) when there is nothing to track", () => {
+    expect(semesterProgress([course([], [])]).pct).toBe(0);
+  });
+});
+
+describe("semesterPace", () => {
+  it("treats lectures and homework as due once their date has passed", () => {
+    const pace = semesterPace(
+      [
+        course(
+          [
+            { watched: true, scheduledDate: past }, // due, done
+            { watched: false, scheduledDate: future }, // not due
+          ],
+          [
+            { completed: false, dueDate: past }, // due, not done
+            { completed: false, dueDate: null }, // undated: never due
+          ]
+        ),
+      ],
+      NOW
+    );
+    expect(pace.totalItems).toBe(4);
+    expect(pace.doneItems).toBe(1);
+    expect(pace.due).toBe(2);
+    expect(pace.diff).toBe(-1); // behind by the one overdue assignment
+  });
+});
 
 describe("gpaStats", () => {
   it("excludes ungraded courses from both earned credits and the average", () => {

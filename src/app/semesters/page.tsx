@@ -41,7 +41,7 @@ function SemesterCard({ s, lang }: { s: SemesterWithCourses; lang: Lang }) {
               {formatDate(s.startDate)} – {formatDate(s.endDate)}
             </div>
           </div>
-          <ProgressRing pct={p.lecturePct} />
+          <ProgressRing pct={p.pct} />
         </div>
         <div
           style={{
@@ -56,8 +56,9 @@ function SemesterCard({ s, lang }: { s: SemesterWithCourses; lang: Lang }) {
         >
           <span>{t(lang, "courseCount", p.courseCount)}</span>
           <span>{t(lang, "lectureCount", p.watched, p.totalLectures)}</span>
+          <span>{t(lang, "homeworkCount", p.doneHw, p.totalHw)}</span>
         </div>
-        <ProgressBar value={p.watched} total={p.totalLectures} className="mt-2" />
+        <ProgressBar value={p.doneItems} total={p.totalItems} className="mt-2" />
       </Link>
       <div style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
         <SemesterForm

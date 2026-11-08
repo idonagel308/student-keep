@@ -13,16 +13,51 @@ export function courseProgress(course: CourseWithChildren) {
   return { totalLectures, watched, totalHw, doneHw };
 }
 
+/**
+ * Semester progress counts lectures AND homework as one pool of work:
+ * a watched lecture and a completed assignment each move the bar by one
+ * item. `pct` is done / total over that combined pool.
+ */
 export function semesterProgress(courses: CourseWithChildren[]) {
   let totalLectures = 0;
   let watched = 0;
+  let totalHw = 0;
+  let doneHw = 0;
   for (const c of courses) {
     totalLectures += c.lectures.length;
     watched += c.lectures.filter((l) => l.watched).length;
+    totalHw += c.homework.length;
+    doneHw += c.homework.filter((h) => h.completed).length;
   }
-  const lecturePct =
-    totalLectures > 0 ? Math.round((watched / totalLectures) * 100) : 0;
-  return { courseCount: courses.length, totalLectures, watched, lecturePct };
+  const totalItems = totalLectures + totalHw;
+  const doneItems = watched + doneHw;
+  const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+  return {
+    courseCount: courses.length,
+    totalLectures,
+    watched,
+    totalHw,
+    doneHw,
+    totalItems,
+    doneItems,
+    pct,
+  };
+}
+
+/**
+ * Pace for the semester detail bar: how many items (lectures + homework)
+ * are done vs. how many should be done by `now`. A lecture is due once its
+ * scheduledDate has passed; homework is due once its dueDate has passed.
+ * Items with no date are never "due", so they can't make you fall behind.
+ */
+export function semesterPace(courses: CourseWithChildren[], now: Date) {
+  const { totalItems, doneItems } = semesterProgress(courses);
+  let due = 0;
+  for (const c of courses) {
+    due += c.lectures.filter((l) => l.scheduledDate && l.scheduledDate <= now).length;
+    due += c.homework.filter((h) => h.dueDate && h.dueDate <= now).length;
+  }
+  return { totalItems, doneItems, due, diff: doneItems - due };
 }
 
 const PASSING_SCORE = 60;
