@@ -8,7 +8,7 @@ import { SemesterForm } from "@/components/forms/SemesterForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EditIcon, DeleteIcon, PlusIcon } from "@/components/icons";
-import { courseProgress } from "@/lib/progress";
+import { courseProgress, semesterPace, semesterProgress } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
@@ -38,11 +38,9 @@ export default async function SemesterPage({
 
   const now = new Date();
   const isActive = semester.startDate <= now && semester.endDate >= now;
-  const allLectures = semester.courses.flatMap((c) => c.lectures);
-  const totalLectures = allLectures.length;
-  const watchedLectures = allLectures.filter((l) => l.watched).length;
-  const dueLectures = allLectures.filter((l) => l.scheduledDate && l.scheduledDate <= now).length;
-  const diff = watchedLectures - dueLectures;
+  const sp = semesterProgress(semester.courses);
+  const pace = semesterPace(semester.courses, now);
+  const { diff } = pace;
   const elapsed =
     semester.endDate > semester.startDate
       ? Math.max(
@@ -50,7 +48,7 @@ export default async function SemesterPage({
           Math.min(1, (now.getTime() - semester.startDate.getTime()) / (semester.endDate.getTime() - semester.startDate.getTime()))
         )
       : 0;
-  const showPace = isActive && totalLectures > 0;
+  const showPace = isActive && pace.totalItems > 0;
   const paceNote =
     diff === 0 ? t(lang, "onTrack") : diff > 0 ? t(lang, "aheadBy", diff) : t(lang, "behindBy", -diff);
 
@@ -82,7 +80,7 @@ export default async function SemesterPage({
           <div style={{ position: "relative", height: 10, borderRadius: 99, background: "var(--color-neutral-300)", overflow: "visible" }}>
             <div
               style={{
-                width: `${totalLectures ? (watchedLectures / totalLectures) * 100 : 0}%`,
+                width: `${pace.totalItems ? (pace.doneItems / pace.totalItems) * 100 : 0}%`,
                 height: "100%",
                 background: diff < 0 ? "var(--color-accent-2)" : "var(--color-accent)",
                 borderRadius: 99,
@@ -94,7 +92,7 @@ export default async function SemesterPage({
                 position: "absolute",
                 top: -5,
                 bottom: -5,
-                insetInlineStart: `${totalLectures ? (dueLectures / totalLectures) * 100 : 0}%`,
+                insetInlineStart: `${pace.totalItems ? (pace.due / pace.totalItems) * 100 : 0}%`,
                 width: 2,
                 background: "var(--color-text)",
               }}
@@ -105,7 +103,7 @@ export default async function SemesterPage({
               {paceNote}
             </span>
             <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
-              {t(lang, "lectureCount", watchedLectures, totalLectures)} · {t(lang, "expectedBy", dueLectures)}
+              {t(lang, "lectureCount", sp.watched, sp.totalLectures)} · {t(lang, "homeworkCount", sp.doneHw, sp.totalHw)} · {t(lang, "expectedBy", pace.due)}
             </span>
           </div>
         </div>
