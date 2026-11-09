@@ -17,7 +17,11 @@ export async function notifyOwner(text: string): Promise<void> {
       body: JSON.stringify({ chat_id: chatId, text }),
       signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) console.error(`[notify] telegram returned ${res.status}`);
+    if (!res.ok) {
+      // Telegram's error text ("chat not found", ...) never contains the token.
+      const why = (await res.text().catch(() => "")).slice(0, 200);
+      console.error(`[notify] telegram returned ${res.status}: ${why}`);
+    }
   } catch {
     // Not logging the error: its message can contain the bot-token URL.
     console.error("[notify] telegram request failed");
