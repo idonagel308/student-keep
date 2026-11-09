@@ -12,9 +12,11 @@ homework items can have a due date, an assignment file, and your own answer
 (either typed text or an uploaded file). Everything is scoped to a signed-in
 user — there's no sharing between accounts.
 
-Accounts are invite-gated: signup requires a shared invite code, so this
-isn't meant to be a public sign-up app. It's built for a small group of
-people you hand the code to yourself.
+Accounts are approval-gated: to sign up, a person requests access, the owner
+approves it and hands them a personal one-time code that works only for their
+email (see [Approving new accounts](#approving-new-accounts)). This isn't
+meant to be a public sign-up app. It's built for a small group of people you
+choose yourself.
 
 ## Features
 
@@ -104,8 +106,9 @@ R2 bucket for file uploads.
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000), go to `/signup`, and
-   create an account using your invite code.
+   Open [http://localhost:3000](http://localhost:3000). Signup needs an
+   approval code, so the very first account has to be created by hand — see
+   [Approving new accounts](#approving-new-accounts).
 
 ## Environment variables
 
@@ -122,7 +125,7 @@ settings for production (they are never read from `.env` in production).
 | `R2_BUCKET_NAME` | Recommended | The name you gave the bucket when you created it (Cloudflare dashboard → R2 → Create bucket). |
 | `BLOB_READ_WRITE_TOKEN` | Optional | Vercel project → Storage → Blob. Only needed if you want the legacy Vercel Blob fallback available; leave unset for a fresh setup — see [File storage](#file-storage) below. |
 | `SESSION_SECRET` | Yes | A random secret used to sign session cookies. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `ADMIN_EMAIL` | Yes | Email of the one account allowed to open `/admin/requests`, where you approve sign-up requests and get each person's one-time code. Create your own account first (see below), then set this. |
+| `ADMIN_EMAIL` | Yes | Email of the one account allowed to open `/admin/requests`, where you approve sign-up requests and get each person's one-time code. Must be an existing account — see [Approving new accounts](#approving-new-accounts). |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Recommended | Lets the site message you when someone requests access. Token: Telegram → @BotFather → `/newbot`. Chat id: message your bot once, then open `https://api.telegram.org/bot<TOKEN>/getUpdates`. |
 | `APP_URL` | Optional | Public site URL, used for the approve link in the Telegram message. |
 | `GOOGLE_CLIENT_ID` | For Google sync | Google Cloud Console → APIs & Services → Credentials → your OAuth client ID (Web application). |
@@ -130,6 +133,35 @@ settings for production (they are never read from `.env` in production).
 | `GOOGLE_REDIRECT_URI` | For Google sync | Must exactly match an authorized redirect URI on that OAuth client: `http://localhost:3000/api/google/callback` locally, `https://<your-domain>/api/google/callback` in production. |
 | `GOOGLE_EVENT_TIMEZONE` | Optional | IANA time zone for timed lecture events. Defaults to `Asia/Jerusalem`. |
 | `GOOGLE_TOKEN_ENCRYPTION_KEY` | Required for Google sync | A random 32-byte key that encrypts users' Google tokens in the database. Generate with the same command as `SESSION_SECRET`. Connecting Google is refused without it, and changing it later means each user must reconnect. |
+
+## Approving new accounts
+
+Nobody can create an account without a code from you, and each code works for
+one email address, once.
+
+1. The person opens `/request-access` (linked from the signup page) and enters
+   their email. You get a Telegram message with their email and a link to the
+   admin page.
+2. Open `/admin/requests` while logged in as `ADMIN_EMAIL` (anyone else gets a
+   404) and click **Approve**. A code like `K7M2-9QXP` appears once; only its
+   hash is stored. Send it to them yourself. **New code** replaces it (it's
+   valid 48 hours and is wiped after 5 wrong guesses). **Reject** deletes the
+   request.
+3. They go to `/signup`, enter the same email, the code and a password, and the
+   code is used up.
+
+Abuse limits: 3 requests per IP per 15 minutes, 5 Telegram pings per 15
+minutes in total (more requests are still saved and listed, without a ping),
+200 stored pending requests, and a **Reject all pending** button for cleanup.
+Without the Telegram variables, requests simply appear on the admin page. For
+extra protection, add a Vercel Firewall rate-limit rule on `/request-access`.
+
+**First account on a fresh deployment.** There is nobody to approve you yet,
+so insert your own row into the `users` table (for example in
+`npx prisma studio`): your lowercase `email`, `name`, `hasCompletedOnboarding`
+`false`, and a `passwordHash` from
+`node -e "console.log(require('bcryptjs').hashSync('your-password', 12))"`.
+Then set `ADMIN_EMAIL` to that email and log in.
 
 ## File storage
 
@@ -271,6 +303,10 @@ I built Student Keep by directing Claude Code, Anthropic's AI coding agent. Clau
 - Uploaded files are stored as private objects and served through an
   ownership-checked route rather than relying on an unguessable URL (see
   [File storage](#file-storage) above).
+- Account creation needs a single-use code tied to one email, stored only as
+  a SHA-256 hash, expiring after 48 hours and wiped after 5 wrong guesses;
+  the code is burned in the same transaction that creates the account, so
+  concurrent submissions can't reuse it (`src/lib/signupCode.ts`).
 - Login and signup are rate-limited using a database table (not
   in-memory), since serverless functions don't share memory between
   invocations. Login is limited per IP + email, with a looser per-account
