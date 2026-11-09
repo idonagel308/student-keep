@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
 import { assertOwnsCourse, assertOwnsHomework, requireUser } from "@/lib/dal";
+import { MAX_NAME_LENGTH, MAX_NOTES_LENGTH, checkLength } from "@/lib/inputLimits";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { recordHomeworkSync, clearHomeworkSync } from "@/lib/google/syncState";
 import { createTask, updateTask, deleteTask } from "@/lib/google/tasks";
@@ -41,6 +42,9 @@ export async function createHomework(
   let dueDate: Date | null;
   try {
     dueDate = parseDueDate(dueDateRaw);
+    checkLength(name, MAX_NAME_LENGTH, "Assignment name");
+    checkLength(details, MAX_NOTES_LENGTH, "Details");
+    checkLength(answerText, MAX_NOTES_LENGTH, "Answer");
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid due date." };
   }
@@ -53,6 +57,7 @@ export async function createHomework(
     assignment = await maybeUpload(formData, "assignmentFile", `homework/${courseId}`);
     answer = await maybeUpload(formData, "answerFile", `homework/${courseId}`);
   } catch (err) {
+    await deleteBlob(assignment?.url); // don't strand the first upload
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
@@ -102,6 +107,9 @@ export async function updateHomework(
   let dueDate: Date | null;
   try {
     dueDate = parseDueDate(dueDateRaw);
+    checkLength(name, MAX_NAME_LENGTH, "Assignment name");
+    checkLength(details, MAX_NOTES_LENGTH, "Details");
+    checkLength(answerText, MAX_NOTES_LENGTH, "Answer");
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid due date." };
   }
@@ -114,11 +122,9 @@ export async function updateHomework(
     newAssignment = await maybeUpload(formData, "assignmentFile", `homework/${existing.courseId}`);
     newAnswer = await maybeUpload(formData, "answerFile", `homework/${existing.courseId}`);
   } catch (err) {
+    await deleteBlob(newAssignment?.url); // don't strand the first upload
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
-
-  if (newAssignment) await deleteBlob(existing.assignmentFileUrl);
-  if (newAnswer) await deleteBlob(existing.answerFileUrl);
 
   await prisma.homework.update({
     where: { id },
@@ -135,6 +141,10 @@ export async function updateHomework(
         : {}),
     },
   });
+  // Only after the row points at the new files: a failed update must not
+  // leave it pointing at deleted ones.
+  if (newAssignment) await deleteBlob(existing.assignmentFileUrl);
+  if (newAnswer) await deleteBlob(existing.answerFileUrl);
 
   // Three cases, same shape as lecture date sync: due date newly set ->
   // create, still set -> update the existing task, cleared -> delete it.

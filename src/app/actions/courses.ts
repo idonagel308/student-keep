@@ -17,21 +17,13 @@ import {
 } from "@/lib/google/calendar";
 import { deleteTask } from "@/lib/google/tasks";
 import { collectFileUrls, deleteFiles } from "@/lib/cleanup";
+import { MAX_NAME_LENGTH, checkLength, parseColor, parseCreditValue } from "@/lib/inputLimits";
 import type { ActionState } from "@/components/ActionForm";
 
 // A real course won't have more lectures than this; the cap exists so a
 // bogus value can't allocate an unbounded array (Array.from({length: n}))
 // or write an unbounded number of rows in one request.
 const MAX_LECTURES = 500;
-
-function parseCredits(raw: string): number | null {
-  if (!raw) return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) {
-    throw new Error("Credits must be a non-negative number.");
-  }
-  return n;
-}
 
 function parseExamScore(raw: string): number | null {
   if (!raw) return null;
@@ -84,7 +76,7 @@ export async function createCourse(
   const courseNumber = String(formData.get("courseNumber") ?? "").trim() || null;
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
-  const color = String(formData.get("color") ?? "").trim() || null;
+  const colorRaw = String(formData.get("color") ?? "");
   const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
   const lectureStartTimeRaw = String(formData.get("lectureStartTime") ?? "");
   const lectureEndTimeRaw = String(formData.get("lectureEndTime") ?? "");
@@ -98,11 +90,15 @@ export async function createCourse(
   }
 
   let credits: number | null;
+  let color: string | null;
   let dayOfWeek: number | null;
   let lectureTime: TimeRange;
   let lectureIntervalWeeks: 1 | 2;
   try {
-    credits = parseCredits(creditsRaw);
+    credits = parseCreditValue(creditsRaw, "Credits");
+    color = parseColor(colorRaw);
+    checkLength(name, MAX_NAME_LENGTH, "Course name");
+    checkLength(courseNumber, 50, "Course number");
     dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
     lectureTime = parseTimeRange(lectureStartTimeRaw, lectureEndTimeRaw);
     lectureIntervalWeeks = parseLectureInterval(lectureIntervalRaw);
@@ -146,12 +142,11 @@ export async function updateCourse(
   formData: FormData
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
-  const semesterId = String(formData.get("semesterId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const courseNumber = String(formData.get("courseNumber") ?? "").trim() || null;
   const totalLectures = Number(formData.get("totalLectures") ?? 0);
   const creditsRaw = String(formData.get("credits") ?? "").trim();
-  const color = String(formData.get("color") ?? "").trim() || null;
+  const colorRaw = String(formData.get("color") ?? "");
   const dayOfWeekRaw = String(formData.get("dayOfWeek") ?? "").trim();
   const lectureStartTimeRaw = String(formData.get("lectureStartTime") ?? "");
   const lectureEndTimeRaw = String(formData.get("lectureEndTime") ?? "");
@@ -163,11 +158,15 @@ export async function updateCourse(
   }
 
   let credits: number | null;
+  let color: string | null;
   let dayOfWeek: number | null;
   let lectureTime: TimeRange;
   let lectureIntervalWeeks: 1 | 2;
   try {
-    credits = parseCredits(creditsRaw);
+    credits = parseCreditValue(creditsRaw, "Credits");
+    color = parseColor(colorRaw);
+    checkLength(name, MAX_NAME_LENGTH, "Course name");
+    checkLength(courseNumber, 50, "Course number");
     dayOfWeek = parseDayOfWeek(dayOfWeekRaw);
     lectureTime = parseTimeRange(lectureStartTimeRaw, lectureEndTimeRaw);
     lectureIntervalWeeks = parseLectureInterval(lectureIntervalRaw);
@@ -194,7 +193,7 @@ export async function updateCourse(
     // picker come into play — from there, +7 days each time preserves
     // whatever weekday was already set.
     const last = existing[existing.length - 1];
-    const anchor = last?.scheduledDate ?? (await assertOwnsSemester(semesterId)).startDate;
+    const anchor = last?.scheduledDate ?? (await assertOwnsSemester(existingCourse.semesterId)).startDate;
     const anchorWeekOffset = last?.scheduledDate ? 1 : 0;
     const anchorDayOfWeek = last?.scheduledDate ? null : dayOfWeek;
 
@@ -281,7 +280,7 @@ export async function updateCourse(
 
   revalidatePath("/");
   revalidatePath("/semesters");
-  revalidatePath(`/semesters/${semesterId}`);
+  revalidatePath(`/semesters/${existingCourse.semesterId}`);
   revalidatePath(`/courses/${id}`);
 }
 
@@ -344,11 +343,11 @@ export async function setCourseGrade(
 
 export async function deleteCourse(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const semesterId = String(formData.get("semesterId") ?? "");
   if (!id) throw new Error("Missing course id.");
 
   const user = await requireUser();
   const courseToDelete = await assertOwnsCourse(id);
+  const semesterId = courseToDelete.semesterId;
 
   if (
     user.googleRefreshToken &&

@@ -7,6 +7,7 @@ import { assertOwnsSemester, requireUser } from "@/lib/dal";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { collectFileUrls, deleteFiles, deleteGoogleItems } from "@/lib/cleanup";
 import { parseSemesterDates } from "@/lib/semesterDates";
+import { MAX_NAME_LENGTH } from "@/lib/inputLimits";
 import type { ActionState } from "@/components/ActionForm";
 
 export async function createSemester(
@@ -20,6 +21,9 @@ export async function createSemester(
 
   if (!name || !startDateRaw || !endDateRaw) {
     return { error: "Name, start date and end date are required." };
+  }
+  if (name.length > MAX_NAME_LENGTH) {
+    return { error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` };
   }
 
   let startDate: Date, endDate: Date;
@@ -53,6 +57,9 @@ export async function updateSemester(
 
   if (!id || !name || !startDateRaw || !endDateRaw) {
     return { error: "All fields are required." };
+  }
+  if (name.length > MAX_NAME_LENGTH) {
+    return { error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` };
   }
 
   let startDate: Date, endDate: Date;

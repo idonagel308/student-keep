@@ -9,7 +9,7 @@ import { createSession, deleteSession } from "@/lib/session";
 import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
 import { collectFileUrls, deleteFiles, deleteGoogleItems } from "@/lib/cleanup";
 import { checkRateLimit, recordAttempt, getClientIp } from "@/lib/rateLimit";
-import { requireUser } from "@/lib/dal";
+import { getCurrentUser, requireUser } from "@/lib/dal";
 
 export type AuthState = { error: string } | undefined;
 
@@ -77,9 +77,10 @@ export async function signup(
   }
 
   if (!safeEqual(inviteCode, expectedCode)) {
-    await recordAttempt(rateLimitKey, false);
     return { error: "That invite code is not valid." };
   }
+  // The invite is proven good, so later form typos shouldn't eat the budget.
+  await recordAttempt(rateLimitKey, true);
 
   if (!email || !email.includes("@")) {
     return { error: "Enter a valid email address." };
@@ -155,6 +156,16 @@ export async function login(
 }
 
 export async function logout() {
+  // Bumping tokenVersion invalidates every outstanding session JWT (checked
+  // in getCurrentUser), so a copied cookie dies on logout instead of living
+  // out its 30 days. Side effect: logging out signs out all devices.
+  const user = await getCurrentUser();
+  if (user) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { tokenVersion: { increment: 1 } },
+    });
+  }
   await deleteSession();
   // Without this, the browser's client-side Router Cache can keep serving
   // a stale, already-rendered copy of a page like /signup from earlier in

@@ -71,7 +71,8 @@ async function postToken(body: URLSearchParams): Promise<TokenResponse> {
     body,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    // Truncated: this message ends up in server logs.
+    const text = (await res.text().catch(() => "")).slice(0, 200);
     throw new Error(`Google token request failed (${res.status}): ${text}`);
   }
   return res.json();

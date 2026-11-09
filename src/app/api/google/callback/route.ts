@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +18,12 @@ export async function GET(request: Request) {
   // Single-use regardless of outcome.
   cookieStore.delete(GOOGLE_OAUTH_STATE_COOKIE);
 
-  if (!code || !state || !expectedState || state !== expectedState) {
+  const stateMatches =
+    !!state &&
+    !!expectedState &&
+    state.length === expectedState.length &&
+    timingSafeEqual(Buffer.from(state), Buffer.from(expectedState));
+  if (!code || !stateMatches) {
     redirect("/?error=google");
   }
 

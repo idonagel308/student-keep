@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { uploadPdf, deleteBlob } from "@/lib/blob";
+import { MAX_NAME_LENGTH, checkLength } from "@/lib/inputLimits";
 import { assertOwnsLecture, assertOwnsCourse, requireUser } from "@/lib/dal";
 import { getValidAccessToken } from "@/lib/google/auth";
 import { recordLectureSync, clearLectureSync } from "@/lib/google/syncState";
@@ -52,6 +53,7 @@ export async function updateLecture(
   try {
     scheduledDate = parseDate(dateRaw);
     ownTime = parseTimeRange(startTimeRaw, endTimeRaw);
+    checkLength(title, MAX_NAME_LENGTH, "Title");
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid date." };
   }
@@ -183,12 +185,13 @@ export async function uploadLectureSummary(
     return { error: err instanceof Error ? err.message : "Upload failed." };
   }
 
-  await deleteBlob(existing.summaryFileUrl);
-
   await prisma.lecture.update({
     where: { id },
     data: { summaryFileUrl: uploaded.url, summaryFileName: uploaded.name },
   });
+  // Only after the row points at the new file: a failed update must not
+  // leave it pointing at a deleted one.
+  await deleteBlob(existing.summaryFileUrl);
 
   revalidatePath(`/courses/${existing.courseId}`);
 }

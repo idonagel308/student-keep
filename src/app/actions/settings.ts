@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/dal";
+import { MAX_NAME_LENGTH, checkLength, parseCreditValue } from "@/lib/inputLimits";
 import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
 import { resyncLectures, resyncHomework, resyncExamDates } from "@/lib/google/resync";
 import { describeSyncResult, type SyncResult } from "@/lib/google/batch";
@@ -27,12 +28,7 @@ export async function setLanguage(formData: FormData) {
 }
 
 function parseCreditsRequired(raw: string): number | null {
-  if (!raw) return null;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) {
-    throw new Error("Credits required must be a non-negative number.");
-  }
-  return n;
+  return parseCreditValue(raw, "Credits required");
 }
 
 export async function setDegreeSettings(
@@ -45,6 +41,7 @@ export async function setDegreeSettings(
   let creditsRequired: number | null;
   try {
     creditsRequired = parseCreditsRequired(creditsRequiredRaw);
+    checkLength(degreeName, MAX_NAME_LENGTH, "Degree name");
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid input." };
   }
