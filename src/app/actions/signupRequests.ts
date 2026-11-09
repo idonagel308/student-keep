@@ -8,7 +8,10 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { CODE_TTL_MS, generateCode, hashCode } from "@/lib/signupCode";
 import type { ActionState } from "@/components/ActionForm";
 
-const MAX_PENDING = 20;
+// Stored requests are cheap, so the cap is high; the phone is what needs
+// protecting, so pings are throttled separately (see below).
+const MAX_PENDING = 200;
+const MAX_PINGS_PER_WINDOW = 5;
 
 /**
  * Public. Always answers the same way, so it can't be used to learn which
@@ -24,7 +27,7 @@ export async function requestAccess(
   }
 
   try {
-    await checkRateLimit(`access-request:${await getClientIp()}`, 5);
+    await checkRateLimit(`access-request:${await getClientIp()}`, 3);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Please try again later." };
   }
@@ -52,6 +55,14 @@ export async function requestAccess(
     create: { email },
     update: { status: "pending", codeHash: null, expiresAt: null, attempts: 0 },
   });
+
+  // Global ping budget across all visitors: past it the request is still
+  // saved and listed on the admin page, it just doesn't buzz the phone.
+  try {
+    await checkRateLimit("access-notify", MAX_PINGS_PER_WINDOW);
+  } catch {
+    return done;
+  }
 
   const base = process.env.APP_URL?.replace(/\/$/, "");
   await notifyOwner(
@@ -91,5 +102,12 @@ export async function deleteRequest(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
   await prisma.signupRequest.deleteMany({ where: { id } });
+  revalidatePath("/admin/requests");
+}
+
+/** Admin only. Clears every request still waiting for a decision. */
+export async function rejectAllPending() {
+  await requireAdmin();
+  await prisma.signupRequest.deleteMany({ where: { status: "pending" } });
   revalidatePath("/admin/requests");
 }

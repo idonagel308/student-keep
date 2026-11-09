@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
-import { deleteRequest } from "@/app/actions/signupRequests";
+import { deleteRequest, rejectAllPending } from "@/app/actions/signupRequests";
 import { ApproveRequestForm } from "@/components/ApproveRequestForm";
 import { DeleteButton } from "@/components/DeleteButton";
 
@@ -13,10 +13,22 @@ export default async function RequestsPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
+
   return (
     <main className="animate-in" style={{ padding: "40px 0", maxWidth: 640 }}>
       <h1 style={{ fontSize: 28, margin: "0 0 24px" }}>Access requests</h1>
       {requests.length === 0 && <p>No open requests.</p>}
+      {pendingCount > 1 && (
+        <div style={{ marginBottom: 16 }}>
+          <DeleteButton
+            action={rejectAllPending}
+            hidden={{}}
+            label={`Reject all ${pendingCount} pending`}
+            confirmMessage={`Delete all ${pendingCount} pending requests? Approved ones are kept.`}
+          />
+        </div>
+      )}
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 16 }}>
         {requests.map((r) => {
           const live = r.status === "approved" && r.codeHash && r.expiresAt && r.expiresAt > new Date();
