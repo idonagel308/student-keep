@@ -189,6 +189,8 @@ export function AuthForm({ mode, action, lang }: Props) {
         {isSignup ? (
           <>
             {t(lang, "alreadyHaveAccount")} <Link href="/login">{t(lang, "signIn")}</Link>
+            <br />
+            {t(lang, "noCodeYet")} <Link href="/request-access">{t(lang, "requestAccess")}</Link>
           </>
         ) : (
           <>

@@ -122,7 +122,9 @@ settings for production (they are never read from `.env` in production).
 | `R2_BUCKET_NAME` | Recommended | The name you gave the bucket when you created it (Cloudflare dashboard → R2 → Create bucket). |
 | `BLOB_READ_WRITE_TOKEN` | Optional | Vercel project → Storage → Blob. Only needed if you want the legacy Vercel Blob fallback available; leave unset for a fresh setup — see [File storage](#file-storage) below. |
 | `SESSION_SECRET` | Yes | A random secret used to sign session cookies. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `SIGNUP_INVITE_CODE` | Yes | Whatever code you want to require for signup. Pick something and share it with whoever you want to be able to create an account. |
+| `ADMIN_EMAIL` | Yes | Email of the one account allowed to open `/admin/requests`, where you approve sign-up requests and get each person's one-time code. Create your own account first (see below), then set this. |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Recommended | Lets the site message you when someone requests access. Token: Telegram → @BotFather → `/newbot`. Chat id: message your bot once, then open `https://api.telegram.org/bot<TOKEN>/getUpdates`. |
+| `APP_URL` | Optional | Public site URL, used for the approve link in the Telegram message. |
 | `GOOGLE_CLIENT_ID` | For Google sync | Google Cloud Console → APIs & Services → Credentials → your OAuth client ID (Web application). |
 | `GOOGLE_CLIENT_SECRET` | For Google sync | Same OAuth client — shown when you create it. |
 | `GOOGLE_REDIRECT_URI` | For Google sync | Must exactly match an authorized redirect URI on that OAuth client: `http://localhost:3000/api/google/callback` locally, `https://<your-domain>/api/google/callback` in production. |

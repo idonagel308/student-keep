@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,7 @@ import { getValidAccessToken, revokeGoogleToken } from "@/lib/google/auth";
 import { collectFileUrls, deleteFiles, deleteGoogleItems } from "@/lib/cleanup";
 import { checkRateLimit, recordAttempt, getClientIp } from "@/lib/rateLimit";
 import { getCurrentUser, requireUser } from "@/lib/dal";
+import { redeemSignupCode } from "@/lib/signupCode";
 
 export type AuthState = { error: string } | undefined;
 
@@ -30,18 +31,6 @@ function normalizeEmail(value: FormDataEntryValue | null) {
 }
 
 /**
- * Constant-time comparison so the invite code can't be guessed by timing.
- * Hashing both sides to a fixed-length digest before comparing avoids the
- * naive-but-common mistake of returning early on a length mismatch, which
- * would otherwise leak the invite code's length one guess at a time.
- */
-function safeEqual(a: string, b: string) {
-  const bufA = createHash("sha256").update(a).digest();
-  const bufB = createHash("sha256").update(b).digest();
-  return timingSafeEqual(bufA, bufB);
-}
-
-/**
  * Both actions below return `{ error }` instead of throwing for expected,
  * user-facing validation failures. Next.js redacts thrown Error messages
  * crossing the server/client boundary in production ("An error occurred in
@@ -59,30 +48,10 @@ export async function signup(
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim() || null;
-  const inviteCode = String(formData.get("inviteCode") ?? "");
+  const code = String(formData.get("inviteCode") ?? "");
 
-  const expectedCode = process.env.SIGNUP_INVITE_CODE;
-  if (!expectedCode) {
-    return { error: "Signup is not configured. Set SIGNUP_INVITE_CODE." };
-  }
-
-  // Rate limit by IP: the invite code is the only thing gating account
-  // creation once this app is public, so unlimited guesses at it would
-  // defeat the point of having one.
-  const rateLimitKey = `signup:${await getClientIp()}`;
-  try {
-    await checkRateLimit(rateLimitKey);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Please try again later." };
-  }
-
-  if (!safeEqual(inviteCode, expectedCode)) {
-    return { error: "That invite code is not valid." };
-  }
-  // The invite is proven good, so later form typos shouldn't eat the budget.
-  await recordAttempt(rateLimitKey, true);
-
-  if (!email || !email.includes("@")) {
+  // Checked before the code is touched, so a typo here never burns it.
+  if (!email || !email.includes("@") || email.length > 254) {
     return { error: "Enter a valid email address." };
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
@@ -92,18 +61,33 @@ export async function signup(
     return { error: `Password must be at most ${MAX_PASSWORD_BYTES} bytes.` };
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return { error: "An account with that email already exists." };
+  // The per-email code limit is the main brake on guessing; this adds a
+  // per-IP one so a single client can't probe many emails.
+  const rateLimitKey = `signup:${await getClientIp()}`;
+  try {
+    await checkRateLimit(rateLimitKey);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Please try again later." };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({
-    data: { email, passwordHash, name, hasCompletedOnboarding: false },
-  });
+  let result;
+  try {
+    result = await redeemSignupCode(email, code, (tx) =>
+      tx.user.create({
+        data: { email, passwordHash, name, hasCompletedOnboarding: false },
+      })
+    );
+  } catch {
+    // Unique-email violation rolls the transaction back, so the code survives.
+    return { error: "An account with that email already exists." };
+  }
+  if (!result.ok) {
+    return { error: "That code is not valid for this email, or it has expired." };
+  }
 
   await recordAttempt(rateLimitKey, true);
-  await createSession(user.id, user.tokenVersion);
+  await createSession(result.value.id, result.value.tokenVersion);
   redirect("/");
 }
 

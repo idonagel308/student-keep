@@ -30,6 +30,7 @@ export const privacyContent: Record<Lang, PrivacyContent> = {
           "Your coursework: semesters, courses (names, numbers, credits, lecture schedules and times, final exam dates, grades), lectures, homework (names, details, due dates, typed answers), your degree name and required credits.",
           "Files you upload: PDFs such as assignments, answers and lecture summaries.",
           "Preferences: your language (a cookie) and light/dark theme (your browser's local storage).",
+          "Access requests: if you ask for an account, your email address is stored (and sent to the site owner as a Telegram notification) until the request is handled. An approved request keeps only a hash of your one-time code.",
           "Short-lived security records: when a login or signup attempt fails, a record containing your IP address and email is kept to block password guessing. These expire after 15 minutes and are purged automatically.",
           "Hosting logs: the hosting provider may keep standard server logs (such as IP addresses and request times) for a limited period.",
         ],

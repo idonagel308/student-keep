@@ -175,6 +175,22 @@ model Lecture {
 /// used instead of in-memory state because Vercel functions are stateless
 /// across invocations/instances, so a plain in-memory counter would reset
 /// on every cold start and not be shared across concurrent instances.
+/// Someone asked for an account. The owner approves it, which mints a
+/// single-use code (stored only as a SHA-256 hash) that works for this email
+/// and no other. status: pending | approved | used.
+model SignupRequest {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  status    String    @default("pending")
+  codeHash  String?   @map("code_hash")
+  /// Wrong-code guesses against the current code; it is wiped at the limit.
+  attempts  Int       @default(0)
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("signup_requests")
+}
+
 model RateLimit {
   key       String   @id
   count     Int      @default(0)
