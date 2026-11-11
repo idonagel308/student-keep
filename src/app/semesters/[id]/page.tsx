@@ -7,8 +7,9 @@ import { CourseForm } from "@/components/forms/CourseForm";
 import { SemesterForm } from "@/components/forms/SemesterForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ProgressBar } from "@/components/ProgressBar";
+import { SemesterPace } from "@/components/SemesterPace";
 import { EditIcon, DeleteIcon, PlusIcon } from "@/components/icons";
-import { courseProgress, semesterPace, semesterProgress } from "@/lib/progress";
+import { courseProgress } from "@/lib/progress";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
@@ -37,21 +38,6 @@ export default async function SemesterPage({
   if (!semester) notFound();
 
   const now = new Date();
-  const isActive = semester.startDate <= now && semester.endDate >= now;
-  const sp = semesterProgress(semester.courses);
-  const pace = semesterPace(semester.courses, now);
-  const { diff } = pace;
-  const elapsed =
-    semester.endDate > semester.startDate
-      ? Math.max(
-          0,
-          Math.min(1, (now.getTime() - semester.startDate.getTime()) / (semester.endDate.getTime() - semester.startDate.getTime()))
-        )
-      : 0;
-  const showPace = isActive && pace.totalItems > 0;
-  const paceNote =
-    diff === 0 ? t(lang, "onTrack") : diff > 0 ? t(lang, "aheadBy", diff) : t(lang, "behindBy", -diff);
-
   return (
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
@@ -60,54 +46,7 @@ export default async function SemesterPage({
         </Link>
       </div>
 
-      {showPace && (
-        <div style={{ marginBottom: 34, maxWidth: 560 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginBottom: 9 }}>
-            <span
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--color-accent)",
-              }}
-            >
-              {t(lang, "pace")}
-            </span>
-            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
-              {t(lang, "semesterElapsed", Math.round(elapsed * 100))}
-            </span>
-          </div>
-          <div style={{ position: "relative", height: 10, borderRadius: 99, background: "var(--color-neutral-300)", overflow: "visible" }}>
-            <div
-              style={{
-                width: `${pace.totalItems ? (pace.doneItems / pace.totalItems) * 100 : 0}%`,
-                height: "100%",
-                background: diff < 0 ? "var(--color-accent-2)" : "var(--color-accent)",
-                borderRadius: 99,
-                transition: "width .7s cubic-bezier(.2,.8,.3,1), background .3s ease",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                top: -5,
-                bottom: -5,
-                insetInlineStart: `${pace.totalItems ? (pace.due / pace.totalItems) * 100 : 0}%`,
-                width: 2,
-                background: "var(--color-text)",
-              }}
-            />
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginTop: 9 }}>
-            <span style={{ fontSize: 13, color: diff < 0 ? "var(--color-accent-2)" : "var(--color-neutral-700)" }}>
-              {paceNote}
-            </span>
-            <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
-              {t(lang, "lectureCount", sp.watched, sp.totalLectures)} · {t(lang, "homeworkCount", sp.doneHw, sp.totalHw)} · {t(lang, "expectedBy", pace.due)}
-            </span>
-          </div>
-        </div>
-      )}
+      <SemesterPace semester={semester} now={now} lang={lang} />
 
       <div
         style={{

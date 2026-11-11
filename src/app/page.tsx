@@ -11,6 +11,7 @@ import { WeekCalendar } from "@/components/WeekCalendar";
 import { WeekLectures } from "@/components/WeekLectures";
 import { WeekNav } from "@/components/WeekNav";
 import { GoogleNotice } from "@/components/GoogleNotice";
+import { SemesterPace } from "@/components/SemesterPace";
 import { resolveWeek } from "@/lib/weekNav";
 import { buildWeekView } from "@/lib/weekView";
 
@@ -43,6 +44,9 @@ export default async function WeekPage({
     now,
     lectureLabel: (n) => t(lang, "lectureNumber", n),
   });
+
+  // buildWeekView's slimmer semester type isn't enough for pace; take the full row.
+  const fullSemester = semesters.find((s) => s.id === semester?.id);
 
   const range = `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`;
   const headline = isCurrentWeek
@@ -79,6 +83,12 @@ export default async function WeekPage({
             : noSemester}
         </p>
       </div>
+
+      {fullSemester && (
+        <div style={{ marginTop: 28 }}>
+          <SemesterPace semester={fullSemester} now={now} lang={lang} />
+        </div>
+      )}
 
       <div
         style={{
