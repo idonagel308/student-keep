@@ -44,20 +44,34 @@ export function semesterProgress(courses: CourseWithChildren[]) {
   };
 }
 
+const LECTURE_GRACE_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Pace for the semester detail bar: how many items (lectures + homework)
- * are done vs. how many should be done by `now`. A lecture is due once its
- * scheduledDate has passed; homework is due once its dueDate has passed.
- * Items with no date are never "due", so they can't make you fall behind.
+ * Pace for the semester bar. Measures the backlog (due but not done) rather
+ * than done − due, so work done early can't hide work that is overdue.
+ * A lecture is due one day after it's held; homework at its dueDate. Items
+ * with no date are never due.
  */
 export function semesterPace(courses: CourseWithChildren[], now: Date) {
   const { totalItems, doneItems } = semesterProgress(courses);
   let due = 0;
+  let overdueLectures = 0;
+  let overdueHomework = 0;
   for (const c of courses) {
-    due += c.lectures.filter((l) => l.scheduledDate && l.scheduledDate <= now).length;
-    due += c.homework.filter((h) => h.dueDate && h.dueDate <= now).length;
+    for (const l of c.lectures) {
+      if (!l.scheduledDate || l.scheduledDate.getTime() + LECTURE_GRACE_MS > now.getTime()) continue;
+      due++;
+      if (!l.watched) overdueLectures++;
+    }
+    for (const h of c.homework) {
+      if (!h.dueDate || h.dueDate > now) continue;
+      due++;
+      if (!h.completed) overdueHomework++;
+    }
   }
-  return { totalItems, doneItems, due, diff: doneItems - due };
+  // Done items that aren't due yet: everything done minus the due ones that are done.
+  const ahead = doneItems - (due - overdueLectures - overdueHomework);
+  return { totalItems, doneItems, due, overdueLectures, overdueHomework, ahead };
 }
 
 const PASSING_SCORE = 60;

@@ -20,7 +20,7 @@ export function SemesterPace({
   const pace = semesterPace(semester.courses, now);
   if (!isActive || pace.totalItems === 0) return null;
 
-  const { diff } = pace;
+  const behind = pace.overdueLectures + pace.overdueHomework > 0;
   const elapsed =
     semester.endDate > semester.startDate
       ? Math.max(
@@ -28,8 +28,11 @@ export function SemesterPace({
           Math.min(1, (now.getTime() - semester.startDate.getTime()) / (semester.endDate.getTime() - semester.startDate.getTime()))
         )
       : 0;
-  const paceNote =
-    diff === 0 ? t(lang, "onTrack") : diff > 0 ? t(lang, "aheadBy", diff) : t(lang, "behindBy", -diff);
+  const paceNote = behind
+    ? t(lang, "catchUp", pace.overdueLectures, pace.overdueHomework)
+    : pace.ahead > 0
+      ? t(lang, "aheadBy", pace.ahead)
+      : t(lang, "onTrack");
 
   return (
     <div style={{ marginBottom: 34, maxWidth: 560 }}>
@@ -53,7 +56,7 @@ export function SemesterPace({
           style={{
             width: `${(pace.doneItems / pace.totalItems) * 100}%`,
             height: "100%",
-            background: diff < 0 ? "var(--color-accent-2)" : "var(--color-accent)",
+            background: behind ? "var(--color-accent-2)" : "var(--color-accent)",
             borderRadius: 99,
             transition: "width .7s cubic-bezier(.2,.8,.3,1), background .3s ease",
           }}
@@ -70,7 +73,7 @@ export function SemesterPace({
         />
       </div>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 14, marginTop: 9 }}>
-        <span style={{ fontSize: 13, color: diff < 0 ? "var(--color-accent-2)" : "var(--color-neutral-700)" }}>
+        <span style={{ fontSize: 13, color: behind ? "var(--color-accent-2)" : "var(--color-neutral-700)" }}>
           {paceNote}
         </span>
         <span style={{ fontSize: "11.5px", color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>

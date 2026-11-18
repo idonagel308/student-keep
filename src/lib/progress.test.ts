@@ -60,7 +60,46 @@ describe("semesterPace", () => {
     expect(pace.totalItems).toBe(4);
     expect(pace.doneItems).toBe(1);
     expect(pace.due).toBe(2);
-    expect(pace.diff).toBe(-1); // behind by the one overdue assignment
+    expect(pace.overdueLectures).toBe(0);
+    expect(pace.overdueHomework).toBe(1);
+    expect(pace.ahead).toBe(0);
+  });
+
+  it("doesn't let work done early hide overdue work", () => {
+    const pace = semesterPace(
+      [
+        course(
+          [
+            { watched: false, scheduledDate: past }, // overdue
+            { watched: true, scheduledDate: future }, // done early
+          ],
+          []
+        ),
+      ],
+      NOW
+    );
+    expect(pace.overdueLectures).toBe(1);
+    expect(pace.ahead).toBe(1);
+  });
+
+  it("gives a lecture one day before it counts as overdue", () => {
+    const heldThisMorning = new Date(NOW.getTime() - 3 * 60 * 60 * 1000);
+    const heldTwoDaysAgo = new Date(NOW.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const pace = semesterPace(
+      [
+        course(
+          [
+            { watched: false, scheduledDate: heldThisMorning },
+            { watched: false, scheduledDate: heldTwoDaysAgo },
+            { watched: false, scheduledDate: null },
+          ],
+          []
+        ),
+      ],
+      NOW
+    );
+    expect(pace.due).toBe(1);
+    expect(pace.overdueLectures).toBe(1);
   });
 });
 

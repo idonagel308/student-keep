@@ -86,7 +86,12 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     pace: "Pace",
     onTrack: "On pace — finished everything due so far.",
     aheadBy: (n) => (n === 1 ? "One item ahead of schedule." : `${n} items ahead of schedule.`),
-    behindBy: (n) => (n === 1 ? "One item behind schedule." : `${n} items behind schedule.`),
+    catchUp: (lectures, homework) => {
+      const parts = [];
+      if (Number(lectures) > 0) parts.push(lectures === 1 ? "1 lecture" : `${lectures} lectures`);
+      if (Number(homework) > 0) parts.push(homework === 1 ? "1 assignment" : `${homework} assignments`);
+      return `To catch up: ${parts.join(" · ")}`;
+    },
     expectedBy: (n) => `${n} due to date`,
     semesterElapsed: (n) => `${n}% of the term elapsed`,
 
@@ -363,7 +368,12 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     pace: "קצב",
     onTrack: "בקצב — הושלם כל מה שהיה אמור להסתיים עד כה.",
     aheadBy: (n) => (n === 1 ? "פריט אחד לפני הלו״ז." : `${n} פריטים לפני הלו״ז.`),
-    behindBy: (n) => (n === 1 ? "פריט אחד מאחורי הלו״ז." : `${n} פריטים מאחורי הלו״ז.`),
+    catchUp: (lectures, homework) => {
+      const parts = [];
+      if (Number(lectures) > 0) parts.push(lectures === 1 ? "הרצאה אחת" : `${lectures} הרצאות`);
+      if (Number(homework) > 0) parts.push(homework === 1 ? "מטלה אחת" : `${homework} מטלות`);
+      return `להשלמה: ${parts.join(" · ")}`;
+    },
     expectedBy: (n) => `${n} מתוזמנים עד כה`,
     semesterElapsed: (n) => `${n}% מהסמסטר חלפו`,
 
