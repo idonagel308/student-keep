@@ -35,8 +35,11 @@ choose yourself.
   a plain "Pass" (for pass/fail courses) — a Pass counts its credits toward
   the degree total without affecting the weighted average.
 - **Semesters and courses** — an optional course number (e.g. a catalog code
-  like "10225") shown next to the course name, a pace indicator
-  (ahead/behind/on-pace vs. lectures actually scheduled to date), and
+  like "10225") shown next to the course name, a semester pace bar (on the
+  semester page and on This week while the semester is in progress) that lists
+  what's overdue to catch up — a lecture counts a day after it's held, an
+  assignment at its due date — so work done early can't hide work that's
+  overdue, and
   semesters grouped by status (in progress / planned / completed), and an
   optional final exam date per course (set from the course page).
 - **Lectures** — auto-scheduled weekly from the semester's start date, or
@@ -47,6 +50,13 @@ choose yourself.
   lecture can override it. Google Calendar events are timed when a time is set
   (Asia/Jerusalem by default; set `GOOGLE_EVENT_TIMEZONE` to change it, 1 hour
   long if no end time is given).
+- **Cancelled classes** — press **Cancelled** on a lecture and it and every
+  later lecture move one class slot later, so numbers stay in order. The
+  course page then shows "cancelled class to reschedule": pick a make-up date
+  (any day, optional time) and it becomes the next lecture in date order while
+  the later ones move back one slot (e.g. lecture 10 on Sunday, make-up on
+  Thursday becomes 11, the next Sunday becomes 12). **No make-up** drops it
+  without moving anything. Google Calendar events follow the new dates.
 - **Homework** — due dates, an assignment PDF, your own answer as typed
   text or an uploaded PDF, and a done/not-done toggle.
 - **Google sync (optional)** — see [Google Calendar and Tasks](#google-calendar-and-tasks-optional).
