@@ -40,3 +40,32 @@ export function parseDayOfWeek(raw: string): number | null {
   }
   return n;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A cancelled class: lecture `from` and every later one take the next one's
+ * date; the last moves one class slot (`intervalWeeks` weeks) further.
+ * `dates` are the course's lecture dates in lecture-number order.
+ */
+export function shiftForCancel(dates: Date[], from: number, intervalWeeks: number): Date[] {
+  return dates.map((d, i) => {
+    if (i < from) return d;
+    if (i + 1 < dates.length) return dates[i + 1];
+    return new Date(d.getTime() + 7 * intervalWeeks * DAY_MS);
+  });
+}
+
+/**
+ * A make-up class on `makeup` (any day): the first lecture dated after it
+ * moves onto it and each later one takes the previous one's date, so numbers
+ * keep following the calendar. Returns null when no lecture is after it.
+ */
+export function shiftForMakeup(dates: Date[], makeup: Date): { dates: Date[]; index: number } | null {
+  const index = dates.findIndex((d) => d.getTime() > makeup.getTime());
+  if (index === -1) return null;
+  return {
+    index,
+    dates: dates.map((d, i) => (i < index ? d : i === index ? makeup : dates[i - 1])),
+  };
+}

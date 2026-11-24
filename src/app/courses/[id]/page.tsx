@@ -7,6 +7,7 @@ import { HomeworkForm } from "@/components/forms/HomeworkForm";
 import { HomeworkItem } from "@/components/HomeworkItem";
 import { LectureRow } from "@/components/LectureRow";
 import { ScheduleWeeklyButton } from "@/components/ScheduleWeeklyButton";
+import { MissedLectures } from "@/components/MissedLectures";
 import { CourseForm } from "@/components/forms/CourseForm";
 import { CourseGrade } from "@/components/forms/CourseGrade";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -167,6 +168,10 @@ export default async function CoursePage({
               </p>
             </div>
           </div>
+
+          {course.missedLectures > 0 && (
+            <MissedLectures courseId={course.id} count={course.missedLectures} lang={lang} />
+          )}
 
           {course.lectures.length === 0 ? (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)" }}>

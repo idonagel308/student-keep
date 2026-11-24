@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { weeklyDate, firstOccurrenceOnOrAfter, parseLectureInterval } from "./courseScheduling";
+import { weeklyDate, firstOccurrenceOnOrAfter, parseLectureInterval, shiftForCancel, shiftForMakeup } from "./courseScheduling";
 
 describe("firstOccurrenceOnOrAfter", () => {
   it("returns the same date when it already falls on the target weekday", () => {
@@ -73,5 +73,36 @@ describe("parseLectureInterval", () => {
     expect(() => parseLectureInterval("3")).toThrow("every week or every two weeks");
     expect(() => parseLectureInterval("0")).toThrow();
     expect(() => parseLectureInterval("weekly")).toThrow();
+  });
+});
+
+describe("cancel and make-up shifting", () => {
+  const day = (n: number) => new Date(Date.UTC(2026, 10, n, 12)); // Nov 2026
+  // Sundays: Nov 1, 8, 15, 22
+  const sundays = [day(1), day(8), day(15), day(22)];
+
+  it("cancel pushes the cancelled lecture and the rest one slot later", () => {
+    const out = shiftForCancel(sundays, 1, 1);
+    expect(out).toEqual([day(1), day(15), day(22), day(29)]);
+  });
+
+  it("cancel respects every-two-weeks courses for the last lecture", () => {
+    expect(shiftForCancel([day(1), day(15)], 1, 2)).toEqual([day(1), day(29)]);
+  });
+
+  it("a make-up on a Thursday becomes the next lecture and the Sunday after is the one after it", () => {
+    const afterCancel = shiftForCancel(sundays, 1, 1); // [1, 15, 22, 29]
+    const r = shiftForMakeup(afterCancel, day(12)); // Thursday Nov 12
+    expect(r?.index).toBe(1);
+    expect(r?.dates).toEqual([day(1), day(12), day(15), day(22)]);
+  });
+
+  it("cancel then make-up on the original date restores the schedule", () => {
+    const r = shiftForMakeup(shiftForCancel(sundays, 1, 1), day(8));
+    expect(r?.dates).toEqual(sundays);
+  });
+
+  it("returns null when every lecture is before the make-up date", () => {
+    expect(shiftForMakeup(sundays, day(30))).toBeNull();
   });
 });

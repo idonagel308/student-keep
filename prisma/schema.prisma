@@ -123,6 +123,8 @@ model Course {
   /// dayOfWeek, changing it only affects lectures scheduled afterwards;
   /// existing dates are never rewritten.
   lectureIntervalWeeks Int @default(1) @map("lecture_interval_weeks")
+  /// Cancelled classes still waiting for a make-up date (see cancelLecture).
+  missedLectures Int @default(0) @map("missed_lectures")
 
   semester Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   lectures Lecture[]

@@ -9,6 +9,7 @@ import { getValidAccessToken } from "@/lib/google/auth";
 import { recordLectureSync, clearLectureSync } from "@/lib/google/syncState";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google/calendar";
 import { parseTimeRange, resolveLectureTime, type TimeRange } from "@/lib/lectureTime";
+import { shiftForCancel, shiftForMakeup } from "@/lib/courseScheduling";
 import type { ActionState } from "@/components/ActionForm";
 
 function parseDate(raw: string): Date | null {
@@ -133,36 +134,147 @@ export async function scheduleLecturesWeekly(formData: FormData) {
     lectures.map((l, i) => prisma.lecture.update({ where: { id: l.id }, data: { scheduledDate: dates[i] } }))
   );
 
-  if (user.googleRefreshToken && user.syncLecturesToCalendar) {
-    try {
-      const accessToken = await getValidAccessToken(user);
-      if (accessToken) {
-        for (let i = 0; i < lectures.length; i++) {
-          const l = lectures[i];
-          const time = resolveLectureTime(
-            { startTime: l.startTime, endTime: l.endTime },
-            { startTime: course.lectureStartTime, endTime: course.lectureEndTime }
-          );
-          const input = {
-            courseName: course.name,
-            number: l.number,
-            title: l.title,
-            scheduledDate: dates[i],
-            ...time,
-          };
-          const eventId = l.googleEventId
-            ? await updateCalendarEvent(accessToken, l.googleEventId, input)
-            : await createCalendarEvent(accessToken, input);
-          await recordLectureSync(l.id, eventId, input);
-        }
-      }
-    } catch (err) {
-      console.error("[google] weekly reschedule sync failed:", err);
-    }
-  }
+  await syncLectureDates(user, course, lectures, dates);
 
   revalidatePath(`/courses/${courseId}`);
   revalidatePath("/");
+}
+
+type SyncUser = Awaited<ReturnType<typeof requireUser>>;
+type SyncCourse = { name: string; lectureStartTime: string | null; lectureEndTime: string | null };
+type SyncLecture = {
+  id: string;
+  number: number;
+  title: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  googleEventId: string | null;
+};
+
+/**
+ * Pushes new lecture dates to Google Calendar. Best-effort: sync is layered
+ * on top of the save and never blocks it.
+ */
+async function syncLectureDates(user: SyncUser, course: SyncCourse, lectures: SyncLecture[], dates: Date[]) {
+  if (!user.googleRefreshToken || !user.syncLecturesToCalendar || lectures.length === 0) return;
+  try {
+    const accessToken = await getValidAccessToken(user);
+    if (!accessToken) return;
+    for (let i = 0; i < lectures.length; i++) {
+      const l = lectures[i];
+      const time = resolveLectureTime(
+        { startTime: l.startTime, endTime: l.endTime },
+        { startTime: course.lectureStartTime, endTime: course.lectureEndTime }
+      );
+      const input = { courseName: course.name, number: l.number, title: l.title, scheduledDate: dates[i], ...time };
+      const eventId = l.googleEventId
+        ? await updateCalendarEvent(accessToken, l.googleEventId, input)
+        : await createCalendarEvent(accessToken, input);
+      await recordLectureSync(l.id, eventId, input);
+    }
+  } catch (err) {
+    console.error("[google] lecture date sync failed:", err);
+  }
+}
+
+/** The course's dated lectures in lecture-number order. */
+async function datedLectures(courseId: string) {
+  const all = await prisma.lecture.findMany({ where: { courseId }, orderBy: { number: "asc" } });
+  return all.filter((l): l is typeof l & { scheduledDate: Date } => l.scheduledDate !== null);
+}
+
+/** Writes the changed dates and returns the lectures/dates that changed. */
+async function saveChangedDates(
+  lectures: Array<SyncLecture & { scheduledDate: Date }>,
+  dates: Date[],
+  extra: Array<ReturnType<typeof prisma.course.update>>
+) {
+  const changed = lectures
+    .map((l, i) => ({ l, d: dates[i] }))
+    .filter(({ l, d }) => l.scheduledDate.getTime() !== d.getTime());
+  await prisma.$transaction([
+    ...changed.map(({ l, d }) => prisma.lecture.update({ where: { id: l.id }, data: { scheduledDate: d } })),
+    ...extra,
+  ]);
+  return { lectures: changed.map((c) => c.l), dates: changed.map((c) => c.d) };
+}
+
+/**
+ * The class for this lecture was cancelled: it and every later lecture move
+ * one class slot later, and the course remembers a class to make up.
+ */
+export async function cancelLecture(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Missing lecture id.");
+
+  const lecture = await assertOwnsLecture(id);
+  if (!lecture.scheduledDate) throw new Error("This lecture has no date.");
+  const user = await requireUser();
+  const course = await assertOwnsCourse(lecture.courseId);
+
+  const lectures = await datedLectures(course.id);
+  const from = lectures.findIndex((l) => l.id === id);
+  const dates = shiftForCancel(lectures.map((l) => l.scheduledDate), from, course.lectureIntervalWeeks);
+  const changed = await saveChangedDates(lectures, dates, [
+    prisma.course.update({ where: { id: course.id }, data: { missedLectures: { increment: 1 } } }),
+  ]);
+  await syncLectureDates(user, course, changed.lectures, changed.dates);
+
+  revalidatePath(`/courses/${course.id}`);
+  revalidatePath("/");
+}
+
+/**
+ * Puts a make-up class on any date: the first lecture after that date moves
+ * onto it and the later ones move back one class slot.
+ */
+export async function rescheduleMissedLecture(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const courseId = String(formData.get("courseId") ?? "");
+  let makeup: Date | null;
+  let ownTime: TimeRange;
+  try {
+    makeup = parseDate(String(formData.get("date") ?? "").trim());
+    ownTime = parseTimeRange(String(formData.get("startTime") ?? ""), String(formData.get("endTime") ?? ""));
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid date." };
+  }
+  if (!courseId || !makeup) return { error: "Choose the make-up date." };
+
+  const user = await requireUser();
+  const course = await assertOwnsCourse(courseId);
+  if (course.missedLectures < 1) return { error: "There is no cancelled class to reschedule." };
+
+  const lectures = await datedLectures(courseId);
+  const shifted = shiftForMakeup(lectures.map((l) => l.scheduledDate), makeup);
+  if (!shifted) return { error: "Pick a date before the course's last lecture." };
+
+  const moved = lectures[shifted.index];
+  const changed = await saveChangedDates(lectures, shifted.dates, [
+    prisma.course.update({ where: { id: courseId }, data: { missedLectures: { decrement: 1 } } }),
+  ]);
+  if (ownTime.startTime || ownTime.endTime) {
+    await prisma.lecture.update({ where: { id: moved.id }, data: ownTime });
+    moved.startTime = ownTime.startTime;
+    moved.endTime = ownTime.endTime;
+  }
+  await syncLectureDates(user, course, changed.lectures, changed.dates);
+
+  revalidatePath(`/courses/${courseId}`);
+  revalidatePath("/");
+}
+
+/** The cancelled class won't be made up: forget it without moving anything. */
+export async function dismissMissedLecture(formData: FormData) {
+  const courseId = String(formData.get("courseId") ?? "");
+  await assertOwnsCourse(courseId);
+  await prisma.course.updateMany({
+    where: { id: courseId, missedLectures: { gt: 0 } },
+    data: { missedLectures: { decrement: 1 } },
+  });
+  revalidatePath(`/courses/${courseId}`);
 }
 
 export async function uploadLectureSummary(

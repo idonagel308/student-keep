@@ -7,7 +7,9 @@ import {
   uploadLectureSummary,
   removeLectureSummary,
   updateLecture,
+  cancelLecture,
 } from "@/app/actions/lectures";
+import { DeleteButton } from "@/components/DeleteButton";
 import { LectureForm } from "@/components/forms/LectureForm";
 import { PdfFileInput } from "@/components/forms/PdfFileInput";
 import { formatDate, formatDateInput } from "@/lib/format";
@@ -144,6 +146,16 @@ export function LectureRow({
         >
           <AttachIcon />
         </button>
+      )}
+
+      {lecture.scheduledDate && !lecture.watched && (
+        <DeleteButton
+          action={cancelLecture}
+          hidden={{ id: lecture.id }}
+          label={t(lang, "classCancelled")}
+          confirmMessage={t(lang, "cancelClassConfirm")}
+          className="btn btn-ghost"
+        />
       )}
 
       <LectureForm

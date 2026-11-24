@@ -105,6 +105,16 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lectureTimeLabel: "Lecture time (optional)",
     startTimeLabel: "Starts",
     endTimeLabel: "Ends",
+    classCancelled: "Cancelled",
+    cancelClassConfirm:
+      "Mark this class as cancelled? This lecture and every later one move one class later, and the course will ask you for a make-up date.",
+    missedClasses: (n) => (n === 1 ? "1 cancelled class to reschedule" : `${n} cancelled classes to reschedule`),
+    missedClassesHint:
+      "Pick the make-up date (any day). That class becomes the next lecture and the later ones move back one class.",
+    makeupDateLabel: "Make-up date",
+    scheduleMakeup: "Schedule",
+    noMakeup: "No make-up",
+    noMakeupConfirm: "Forget this cancelled class? Lecture dates stay as they are.",
     lectureTimeHint: "When this course's lectures usually meet. You can still change the time of a single lecture.",
     lectureTimeOverrideHint: (course) =>
       course
@@ -386,6 +396,16 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lectureTimeLabel: "שעת ההרצאה (אופציונלי)",
     startTimeLabel: "התחלה",
     endTimeLabel: "סיום",
+    classCancelled: "בוטל",
+    cancelClassConfirm:
+      "לסמן שהשיעור בוטל? ההרצאה הזו וכל ההרצאות שאחריה יזוזו שיעור אחד קדימה, והקורס יבקש תאריך לשיעור השלמה.",
+    missedClasses: (n) => (n === 1 ? "שיעור מבוטל אחד לקביעה מחדש" : `${n} שיעורים מבוטלים לקביעה מחדש`),
+    missedClassesHint:
+      "בחרו את תאריך שיעור ההשלמה (בכל יום). הוא יהפוך להרצאה הבאה, וההרצאות שאחריו יחזרו שיעור אחד אחורה.",
+    makeupDateLabel: "תאריך השלמה",
+    scheduleMakeup: "קביעה",
+    noMakeup: "אין השלמה",
+    noMakeupConfirm: "לשכוח את השיעור המבוטל? תאריכי ההרצאות יישארו כמו שהם.",
     lectureTimeHint: "באיזו שעה ההרצאות של הקורס מתקיימות בדרך כלל. אפשר לשנות את השעה של הרצאה בודדת.",
     lectureTimeOverrideHint: (course) =>
       course
