@@ -6,6 +6,11 @@ import type { Lang } from "@/lib/i18n/dictionary";
 
 const STORAGE_KEY = "theme";
 
+/** Matches the phone's browser bar to the page background (see viewport in layout.tsx). */
+function syncThemeColor(theme: "light" | "dark") {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#1a1918" : "#f3f2f2");
+}
+
 function currentTheme(): "light" | "dark" {
   if (typeof document === "undefined") return "light";
   return document.documentElement.getAttribute("data-theme") === "dark"
@@ -22,6 +27,7 @@ export function ThemeToggle({ lang }: { lang: Lang }) {
     // no React-owned state to read this from instead.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(currentTheme());
+    syncThemeColor(currentTheme());
   }, []);
 
   function toggle() {
@@ -29,6 +35,7 @@ export function ThemeToggle({ lang }: { lang: Lang }) {
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     window.localStorage.setItem(STORAGE_KEY, next);
+    syncThemeColor(next);
   }
 
   return (

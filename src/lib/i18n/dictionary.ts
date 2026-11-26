@@ -105,7 +105,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lectureTimeLabel: "Lecture time (optional)",
     startTimeLabel: "Starts",
     endTimeLabel: "Ends",
-    classCancelled: "Cancelled",
+    classCancelled: "Class was cancelled",
     cancelClassConfirm:
       "Mark this class as cancelled? This lecture and every later one move one class later, and the course will ask you for a make-up date.",
     missedClasses: (n) => (n === 1 ? "1 cancelled class to reschedule" : `${n} cancelled classes to reschedule`),
@@ -396,7 +396,7 @@ export const dictionary: Record<Lang, Record<string, DictValue>> = {
     lectureTimeLabel: "שעת ההרצאה (אופציונלי)",
     startTimeLabel: "התחלה",
     endTimeLabel: "סיום",
-    classCancelled: "בוטל",
+    classCancelled: "השיעור בוטל",
     cancelClassConfirm:
       "לסמן שהשיעור בוטל? ההרצאה הזו וכל ההרצאות שאחריה יזוזו שיעור אחד קדימה, והקורס יבקש תאריך לשיעור השלמה.",
     missedClasses: (n) => (n === 1 ? "שיעור מבוטל אחד לקביעה מחדש" : `${n} שיעורים מבוטלים לקביעה מחדש`),

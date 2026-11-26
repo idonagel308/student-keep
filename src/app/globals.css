@@ -10,16 +10,17 @@
   --color-bg: #f3f2f2;
   --color-surface: #eae9e9;
   --color-text: #201e1d;
-  --color-accent: #0088b0;
-  --color-accent-2: #d6006c;
+  /* Darkened so text in these colors passes WCAG AA (4.5:1) on bg and surface. */
+  --color-accent: #007396;
+  --color-accent-2: #c90066;
   --color-divider: color-mix(in srgb, #201e1d 16%, transparent);
 
   --color-neutral-100: #f8f4f4;
   --color-neutral-200: #eae7e7;
   --color-neutral-300: #d7d3d3;
   --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
+  --color-neutral-500: #6b6767;
+  --color-neutral-600: #656161;
   --color-neutral-700: #605d5d;
   --color-neutral-800: #444141;
   --color-neutral-900: #2d2b2b;
@@ -29,8 +30,8 @@
   --color-accent-300: #99e0ff;
   --color-accent-400: #62c5ee;
   --color-accent-500: #38a6cf;
-  --color-accent-600: #1186ac;
-  --color-accent-700: #006786;
+  --color-accent-600: #00627f;
+  --color-accent-700: #005269;
   --color-accent-800: #004961;
   --color-accent-900: #0a303e;
 
@@ -569,7 +570,11 @@ label.file-drop {
   margin-top: var(--space-8);
   margin-bottom: var(--space-8);
   max-height: calc(100vh - 2 * var(--space-8));
+  max-height: calc(100dvh - 2 * var(--space-8));
   overflow-y: auto;
+}
+.dialog:focus {
+  outline: none;
 }
 .dialog-title {
   font-family: var(--font-heading);
@@ -587,19 +592,7 @@ label.file-drop {
   margin-top: var(--space-2);
 }
 
-@keyframes ct-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.animate-in {
-  animation: ct-in 0.3s ease both;
-}
+
 
 /* Back-link arrows are a literal "←" character, not an SVG — mirror it
    under RTL rather than swapping to a different glyph, so bold/italic
@@ -697,4 +690,82 @@ a.week-nav-label {
 .week-nav a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
+}
+
+/* — phones and touch — */
+
+/* Logged-in header on phones: the brand repeats the "This week" tab, so it
+   gives way to keep the header inside a 375px screen. */
+@media (max-width: 520px) {
+  .nav {
+    gap: var(--space-3);
+    padding-inline: 16px;
+  }
+  .nav:has(nav) .nav-brand {
+    display: none;
+  }
+}
+.nav a,
+.nav-brand {
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  /* iOS zooms into any field under 16px. */
+  .input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  /* Bigger touch areas without changing how things look. */
+  .check-box,
+  .btn-icon,
+  .nav a {
+    position: relative;
+  }
+  .check-box::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+  }
+  .btn-icon::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
+  .nav a::after {
+    content: "";
+    position: absolute;
+    inset: -12px -6px;
+  }
+}
+
+/* Hover colors only where there is a real hover, so they don't stick after a tap. */
+@media (hover: none) {
+  a:hover {
+    color: var(--color-accent);
+  }
+  .nav a:hover:not([aria-current="page"]) {
+    color: inherit;
+  }
+  .btn-primary:hover {
+    background: var(--color-accent);
+  }
+  .btn-secondary:hover,
+  .btn-ghost:hover,
+  .week-nav a:hover {
+    background: transparent;
+  }
+  .check-box:hover:not([aria-pressed="true"]) {
+    border-color: var(--color-divider);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -21,12 +21,15 @@ export function LectureForm({
   action,
   initial,
   courseTimeLabel,
+  footer,
   lang,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   initial: LectureValues;
   /** The course's formatted time, shown so it's clear what "empty" falls back to. */
   courseTimeLabel: string;
+  /** Extra actions under the form (their own forms, so not nested in it). */
+  footer?: React.ReactNode;
   lang: Lang;
 }) {
   return (
@@ -45,64 +48,67 @@ export function LectureForm({
       )}
     >
       {(close) => (
-        <ActionForm action={action} onSuccess={close}>
-          {(pending) => (
-            <div className="space-y-4">
-              <input type="hidden" name="id" value={initial.id} />
-              <div className="field">
-                <label className={labelClass}>{t(lang, "lectureTitleLabel")}</label>
-                <input
-                  name="title"
-                  defaultValue={initial.title ?? ""}
-                  placeholder="e.g. Uniform continuity"
-                  className={inputClass}
-                />
-              </div>
-              <div className="field">
-                <label className={labelClass}>{t(lang, "scheduledDateLabel")}</label>
-                <input
-                  type="date"
-                  name="scheduledDate"
-                  defaultValue={initial.scheduledDate}
-                  className={inputClass}
-                />
-              </div>
-              <div className="field">
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1 text-xs">
-                    {t(lang, "startTimeLabel")}
-                    <input
-                      type="time"
-                      name="startTime"
-                      defaultValue={initial.startTime ?? ""}
-                      className={inputClass}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs">
-                    {t(lang, "endTimeLabel")}
-                    <input
-                      type="time"
-                      name="endTime"
-                      defaultValue={initial.endTime ?? ""}
-                      className={inputClass}
-                    />
-                  </label>
+        <>
+          <ActionForm action={action} onSuccess={close}>
+            {(pending) => (
+              <div className="space-y-4">
+                <input type="hidden" name="id" value={initial.id} />
+                <div className="field">
+                  <label className={labelClass}>{t(lang, "lectureTitleLabel")}</label>
+                  <input
+                    name="title"
+                    defaultValue={initial.title ?? ""}
+                    placeholder="e.g. Uniform continuity"
+                    className={inputClass}
+                  />
                 </div>
-                <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
-                  {t(lang, "lectureTimeOverrideHint", courseTimeLabel)}
-                </p>
+                <div className="field">
+                  <label className={labelClass}>{t(lang, "scheduledDateLabel")}</label>
+                  <input
+                    type="date"
+                    name="scheduledDate"
+                    defaultValue={initial.scheduledDate}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="field">
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex flex-col gap-1 text-xs">
+                      {t(lang, "startTimeLabel")}
+                      <input
+                        type="time"
+                        name="startTime"
+                        defaultValue={initial.startTime ?? ""}
+                        className={inputClass}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs">
+                      {t(lang, "endTimeLabel")}
+                      <input
+                        type="time"
+                        name="endTime"
+                        defaultValue={initial.endTime ?? ""}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "5px 0 0" }}>
+                    {t(lang, "lectureTimeOverrideHint", courseTimeLabel)}
+                  </p>
+                </div>
+                <div className="dialog-actions">
+                  <button type="button" onClick={close} className={btnSecondary}>
+                    {t(lang, "cancel")}
+                  </button>
+                  <button type="submit" disabled={pending} className={btnPrimary}>
+                    {pending ? t(lang, "saving") : t(lang, "save")}
+                  </button>
+                </div>
               </div>
-              <div className="dialog-actions">
-                <button type="button" onClick={close} className={btnSecondary}>
-                  {t(lang, "cancel")}
-                </button>
-                <button type="submit" disabled={pending} className={btnPrimary}>
-                  {pending ? t(lang, "saving") : t(lang, "save")}
-                </button>
-              </div>
-            </div>
-          )}
-        </ActionForm>
+            )}
+          </ActionForm>
+          {footer && <div style={{ borderTop: "1px solid var(--color-divider)", paddingTop: 12 }}>{footer}</div>}
+        </>
       )}
     </Modal>
   );

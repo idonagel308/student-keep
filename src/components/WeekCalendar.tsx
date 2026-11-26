@@ -63,7 +63,7 @@ function ItemChip({ item, extra }: { item: WeekCalendarItem; extra: boolean }) {
             <span dir="ltr">{item.time}</span>{" "}
           </>
         )}
-        {item.courseName}
+        <bdi>{item.courseName}</bdi>
       </span>
       <span dir="auto" style={{ ...ellipsis, opacity: 0.85 }}>
         {item.label}

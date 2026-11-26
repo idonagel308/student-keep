@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { toggleHomework } from "@/app/actions/homework";
-import { CheckIcon } from "@/components/icons";
+import { CheckToggle } from "@/components/CheckToggle";
 import { formatDate, dueLabel, dueStatus } from "@/lib/format";
 import { requireUser } from "@/lib/dal";
 import { getLang } from "@/lib/i18n/getLang";
@@ -79,7 +79,7 @@ export default async function WeekPage({
         <h1 style={{ fontSize: "clamp(38px,6vw,56px)", margin: "0 0 12px" }}>{headline}</h1>
         <p style={{ fontSize: 16, color: "var(--color-neutral-600)", margin: 0 }}>
           {semester
-            ? `${semester.name} · ${formatDate(semester.startDate)} – ${formatDate(semester.endDate)}`
+            ? <><bdi>{semester.name}</bdi>{` · ${formatDate(semester.startDate)} – ${formatDate(semester.endDate)}`}</>
             : noSemester}
         </p>
       </div>
@@ -122,15 +122,16 @@ export default async function WeekPage({
                   borderRadius: "var(--radius-md)",
                 }}
               >
-                <form action={toggleHomework as (fd: FormData) => void}>
-                  <input type="hidden" name="id" value={r.homeworkId} />
-                  <input type="hidden" name="courseId" value={r.courseId} />
-                  <button type="submit" className="check-box" aria-label={`${t(lang, "markDone")}: ${r.name}`}>
-                    <CheckIcon checked={false} />
-                  </button>
-                </form>
+                <CheckToggle
+                  action={toggleHomework}
+                  id={r.homeworkId}
+                  courseId={r.courseId}
+                  checked={false}
+                  labelWhenChecked={`${t(lang, "markNotDone")}: ${r.name}`}
+                  labelWhenUnchecked={`${t(lang, "markDone")}: ${r.name}`}
+                />
                 <Link href={`/courses/${r.courseId}`} style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: "14.5px" }}>{r.name}</span>
+                  <bdi style={{ display: "block", fontSize: "14.5px" }}>{r.name}</bdi>
                   <span
                     style={{
                       display: "flex",
@@ -149,7 +150,7 @@ export default async function WeekPage({
                         background: r.courseColor ?? "var(--color-accent)",
                       }}
                     />
-                    {r.courseName}
+                    <bdi>{r.courseName}</bdi>
                   </span>
                 </Link>
                 <span

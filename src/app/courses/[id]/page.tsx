@@ -75,7 +75,7 @@ export default async function CoursePage({
     <div className="animate-in" style={{ paddingTop: 48 }}>
       <div style={{ marginBottom: 8 }}>
         <Link href={`/semesters/${course.semesterId}`} style={{ fontSize: 13 }}>
-          <span className="back-arrow">←</span> {course.semester.name}
+          <span className="back-arrow">←</span> <bdi>{course.semester.name}</bdi>
         </Link>
       </div>
 
@@ -91,7 +91,7 @@ export default async function CoursePage({
             }}
           />
         )}
-        <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 8px" }}>{course.name}</h1>
+        <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 8px" }}><bdi>{course.name}</bdi></h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           {course.courseNumber && (
             <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
@@ -250,7 +250,7 @@ export default async function CoursePage({
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 13 }}
                   >
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {h.name}
+                      <bdi>{h.name}</bdi>
                     </span>
                     <span style={{ flexShrink: 0, fontSize: 11, color: dueColors[dueStatus(h.dueDate!)] }}>
                       {formatDate(h.dueDate)} · {dueLabel(h.dueDate!)}

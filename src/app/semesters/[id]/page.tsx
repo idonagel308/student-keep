@@ -71,7 +71,7 @@ export default async function SemesterPage({
             {t(lang, "semesterKicker")}
           </div>
           <h1 style={{ fontSize: "clamp(30px,5vw,44px)", margin: "0 0 6px" }}>
-            {semester.name}
+            <bdi>{semester.name}</bdi>
           </h1>
           <p style={{ fontSize: 14, color: "var(--color-neutral-600)", margin: 0 }}>
             {formatDate(semester.startDate)} – {formatDate(semester.endDate)}
@@ -137,7 +137,7 @@ export default async function SemesterPage({
                         }}
                       />
                     )}
-                    <span style={{ fontWeight: 600, fontSize: 19 }}>{c.name}</span>
+                    <bdi style={{ fontWeight: 600, fontSize: 19 }}>{c.name}</bdi>
                     {c.courseNumber && (
                       <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>
                         {c.courseNumber}

@@ -85,13 +85,13 @@ export function DegreeCourseList({ courses, lang }: { courses: DegreeCourse[]; l
             />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "14.5px" }}>
-                {c.name}
+                <bdi>{c.name}</bdi>
                 {c.courseNumber && (
                   <span style={{ color: "var(--color-neutral-600)" }}> · {c.courseNumber}</span>
                 )}
               </div>
               <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
-                {c.semesterName}
+                <bdi>{c.semesterName}</bdi>
                 {c.credits != null ? ` · ${t(lang, "creditsCount", c.credits)}` : ""}
               </div>
             </div>

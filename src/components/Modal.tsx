@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export function Modal({
@@ -17,6 +17,7 @@ export function Modal({
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     // One-time client-mount flag for createPortal (no DOM on the server) — no event to subscribe to instead.
@@ -25,16 +26,37 @@ export function Modal({
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    // Focus moves into the dialog, stays there while it's open, and goes back
+    // to whatever opened it on close.
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      [...(dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) ?? [])];
+    // The dialog itself, not its first field: focusing a field would pop the phone keyboard.
+    dialogRef.current?.focus();
+
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Tab") return;
+      const els = focusables();
+      if (els.length === 0) return;
+      const [head, tail] = [els[0], els[els.length - 1]];
+      if (e.shiftKey && (document.activeElement === head || document.activeElement === dialogRef.current)) {
+        e.preventDefault();
+        tail.focus();
+      } else if (!e.shiftKey && document.activeElement === tail) {
+        e.preventDefault();
+        head.focus();
+      }
     }
-    if (open) {
-      document.addEventListener("keydown", onKey);
-      document.body.style.overflow = "hidden";
-    }
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      opener?.focus();
     };
   }, [open]);
 
@@ -45,9 +67,9 @@ export function Modal({
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div ref={dialogRef} role="dialog" aria-modal="true" className="dialog">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="dialog">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2 className="dialog-title" style={{ margin: 0 }}>
+          <h2 id={titleId} className="dialog-title" style={{ margin: 0 }}>
             {title}
           </h2>
           <button

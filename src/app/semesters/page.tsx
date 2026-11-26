@@ -34,9 +34,9 @@ function SemesterCard({ s, lang }: { s: SemesterWithCourses; lang: Lang }) {
                 marginBottom: 6,
               }}
             >
-              {t(lang, "semesters")}
+              {t(lang, "semesterKicker")}
             </div>
-            <div style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.1 }}>{s.name}</div>
+            <div style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.1 }}><bdi>{s.name}</bdi></div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 5 }}>
               {formatDate(s.startDate)} – {formatDate(s.endDate)}
             </div>

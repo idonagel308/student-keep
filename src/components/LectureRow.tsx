@@ -14,7 +14,8 @@ import { LectureForm } from "@/components/forms/LectureForm";
 import { PdfFileInput } from "@/components/forms/PdfFileInput";
 import { formatDate, formatDateInput } from "@/lib/format";
 import { formatTimeRange, resolveLectureTime, type TimeRange } from "@/lib/lectureTime";
-import { CheckIcon, PdfIcon, AttachIcon } from "@/components/icons";
+import { PdfIcon, AttachIcon } from "@/components/icons";
+import { CheckToggle } from "@/components/CheckToggle";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 import type { Lecture } from "@/generated/prisma/client";
@@ -44,44 +45,40 @@ export function LectureRow({
         borderBottom: "1px solid var(--color-divider)",
       }}
     >
-      <form action={toggleLecture as (fd: FormData) => void}>
-        <input type="hidden" name="id" value={lecture.id} />
-        <input type="hidden" name="courseId" value={lecture.courseId} />
-        <button
-          type="submit"
-          className="check-box"
-          aria-pressed={lecture.watched}
-          aria-label={lecture.watched ? t(lang, "markUnwatched") : t(lang, "markWatched")}
-        >
-          <CheckIcon checked={lecture.watched} />
-        </button>
-      </form>
+      <CheckToggle
+        action={toggleLecture}
+        id={lecture.id}
+        courseId={lecture.courseId}
+        checked={lecture.watched}
+        labelWhenChecked={t(lang, "markUnwatched")}
+        labelWhenUnchecked={t(lang, "markWatched")}
+      />
 
       <span style={{ flex: "none", fontSize: "11.5px", color: "var(--color-neutral-500)", width: 20 }}>
         {lecture.number}
       </span>
 
-      <span
-        style={{
-          minWidth: 0,
-          flex: 1,
-          fontSize: 14,
-          color: lecture.watched ? "var(--color-neutral-500)" : "var(--color-text)",
-          textDecoration: lecture.watched ? "line-through" : "none",
-        }}
-      >
-        {lecture.title || t(lang, "lectureNumber", lecture.number)}
-      </span>
-
-      <span style={{ flex: "none", fontSize: 11.5, color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
-        {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : t(lang, "noDate")}
-        {time && (
-          // Always left-to-right so "10:00–12:00" doesn't get reordered
-          // inside a right-to-left (Hebrew) page.
-          <span dir="ltr" style={{ marginInlineStart: 8 }}>
-            {time}
-          </span>
-        )}
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <bdi
+          style={{
+            display: "block",
+            fontSize: 14,
+            color: lecture.watched ? "var(--color-neutral-500)" : "var(--color-text)",
+            textDecoration: lecture.watched ? "line-through" : "none",
+          }}
+        >
+          {lecture.title || t(lang, "lectureNumber", lecture.number)}
+        </bdi>
+        <span style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-500)", fontFeatureSettings: "'tnum' 1" }}>
+          {lecture.scheduledDate ? formatDate(lecture.scheduledDate) : t(lang, "noDate")}
+          {time && (
+            // Always left-to-right so "10:00–12:00" doesn't get reordered
+            // inside a right-to-left (Hebrew) page.
+            <span dir="ltr" style={{ marginInlineStart: 8 }}>
+              {time}
+            </span>
+          )}
+        </span>
       </span>
 
       {lecture.summaryFileUrl ? (
@@ -148,16 +145,6 @@ export function LectureRow({
         </button>
       )}
 
-      {lecture.scheduledDate && !lecture.watched && (
-        <DeleteButton
-          action={cancelLecture}
-          hidden={{ id: lecture.id }}
-          label={t(lang, "classCancelled")}
-          confirmMessage={t(lang, "cancelClassConfirm")}
-          className="btn btn-ghost"
-        />
-      )}
-
       <LectureForm
         action={updateLecture}
         lang={lang}
@@ -170,6 +157,18 @@ export function LectureRow({
           endTime: lecture.endTime,
         }}
         courseTimeLabel={formatTimeRange(courseTime)}
+        footer={
+          lecture.scheduledDate &&
+          !lecture.watched && (
+            <DeleteButton
+              action={cancelLecture}
+              hidden={{ id: lecture.id }}
+              label={t(lang, "classCancelled")}
+              confirmMessage={t(lang, "cancelClassConfirm")}
+              className="btn btn-ghost-danger"
+            />
+          )
+        }
       />
     </li>
   );

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import Script from "next/script";
 import { Source_Serif_4, Noto_Serif_Hebrew } from "next/font/google";
@@ -25,6 +25,8 @@ const notoSerifHebrew = Noto_Serif_Hebrew({
   subsets: ["latin", "hebrew"],
   weight: ["400", "500", "700"],
 });
+
+export const viewport: Viewport = { themeColor: "#f3f2f2" };
 
 export const metadata: Metadata = {
   title: "Student Keep",

@@ -9,7 +9,7 @@ import {
   removeHomeworkFile,
 } from "@/app/actions/homework";
 import { formatDate, formatDateInput, dueLabel, dueStatus } from "@/lib/format";
-import { CheckIcon } from "@/components/icons";
+import { CheckToggle } from "@/components/CheckToggle";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 import type { Homework } from "@/generated/prisma/client";
@@ -24,18 +24,15 @@ export function HomeworkItem({ hw, lang }: { hw: Homework; lang: Lang }) {
   return (
     <li className="card" style={{ padding: 14, gap: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <form action={toggleHomework as (fd: FormData) => void} style={{ paddingTop: 2 }}>
-          <input type="hidden" name="id" value={hw.id} />
-          <input type="hidden" name="courseId" value={hw.courseId} />
-          <button
-            type="submit"
-            className="check-box"
-            aria-pressed={hw.completed}
-            aria-label={hw.completed ? t(lang, "markNotDone") : t(lang, "markDone")}
-          >
-            <CheckIcon checked={hw.completed} />
-          </button>
-        </form>
+        <CheckToggle
+          action={toggleHomework}
+          id={hw.id}
+          courseId={hw.courseId}
+          checked={hw.completed}
+          labelWhenChecked={t(lang, "markNotDone")}
+          labelWhenUnchecked={t(lang, "markDone")}
+          style={{ paddingTop: 2 }}
+        />
 
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
@@ -56,7 +53,7 @@ export function HomeworkItem({ hw, lang }: { hw: Homework; lang: Lang }) {
                 textDecoration: hw.completed ? "line-through" : "none",
               }}
             >
-              {hw.name}
+              <bdi>{hw.name}</bdi>
             </h3>
             {hw.dueDate && (
               <span style={{ fontSize: 12, color: dueColors[dueStatus(hw.dueDate)] }}>

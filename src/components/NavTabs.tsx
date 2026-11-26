@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
@@ -23,23 +23,31 @@ export function NavTabs({ lang }: { lang: Lang }) {
       {tabs.map((tab) => {
         const active = tab.match(pathname);
         return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            aria-current={active ? "page" : undefined}
-            style={{
-              fontSize: "13.5px",
-              textDecorationLine: active ? "underline" : "none",
-              textUnderlineOffset: 5,
-              textDecorationColor: "var(--color-accent)",
-              textDecorationThickness: 2,
-              color: active ? "var(--color-text)" : "var(--color-neutral-600)",
-            }}
-          >
-            {tab.label}
+          <Link key={tab.href} href={tab.href} aria-current={active ? "page" : undefined}>
+            <TabLabel label={tab.label} active={active} />
           </Link>
         );
       })}
     </nav>
+  );
+}
+
+/** Shows the tapped tab as selected right away, while its page loads. */
+function TabLabel({ label, active }: { label: string; active: boolean }) {
+  const { pending } = useLinkStatus();
+  const on = active || pending;
+  return (
+    <span
+      style={{
+        fontSize: "13.5px",
+        textDecorationLine: on ? "underline" : "none",
+        textUnderlineOffset: 5,
+        textDecorationColor: "var(--color-accent)",
+        textDecorationThickness: 2,
+        color: on ? "var(--color-text)" : "var(--color-neutral-600)",
+      }}
+    >
+      {label}
+    </span>
   );
 }

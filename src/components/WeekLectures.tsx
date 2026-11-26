@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { toggleLecture } from "@/app/actions/lectures";
-import { CheckIcon } from "@/components/icons";
+import { CheckToggle } from "@/components/CheckToggle";
 import { t } from "@/lib/i18n/t";
 import type { Lang } from "@/lib/i18n/dictionary";
 import { groupByCalendarDay } from "@/lib/weekCalendar";
@@ -85,18 +85,14 @@ function LectureItem({ l, lang }: { l: WeekLectureRow; lang: Lang }) {
   return (
     <div style={{ padding: "12px 10px", margin: "0 -10px", borderRadius: "var(--radius-md)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-        <form action={toggleLecture as (fd: FormData) => void}>
-          <input type="hidden" name="id" value={l.lectureId} />
-          <input type="hidden" name="courseId" value={l.courseId} />
-          <button
-            type="submit"
-            className="check-box"
-            aria-pressed={l.watched}
-            aria-label={`${l.watched ? t(lang, "markUnwatched") : t(lang, "markWatched")}: ${lectureName}`}
-          >
-            <CheckIcon checked={l.watched} />
-          </button>
-        </form>
+        <CheckToggle
+          action={toggleLecture}
+          id={l.lectureId}
+          courseId={l.courseId}
+          checked={l.watched}
+          labelWhenChecked={`${t(lang, "markUnwatched")}: ${lectureName}`}
+          labelWhenUnchecked={`${t(lang, "markWatched")}: ${lectureName}`}
+        />
         <Link href={`/courses/${l.courseId}`} style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
@@ -117,9 +113,9 @@ function LectureItem({ l, lang }: { l: WeekLectureRow; lang: Lang }) {
                 background: l.courseColor ?? "var(--color-accent)",
               }}
             />
-            {l.courseName}
+            <bdi>{l.courseName}</bdi>
           </span>
-          <span style={{ display: "block", fontSize: "14.5px", marginTop: 4 }}>{lectureName}</span>
+          <bdi style={{ display: "block", fontSize: "14.5px", marginTop: 4 }}>{lectureName}</bdi>
           {l.timeLabel && (
             <span
               dir="ltr"

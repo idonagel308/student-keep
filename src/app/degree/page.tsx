@@ -137,7 +137,7 @@ export default async function DegreePage() {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15 }}>{s.name}</div>
+                    <div style={{ fontSize: 15 }}><bdi>{s.name}</bdi></div>
                     <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", marginTop: 3 }}>
                       {semesterStatus(s.startDate, s.endDate, now, lang)} · {t(lang, "creditsCount", num(sk.credits))}
                     </div>
