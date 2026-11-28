@@ -34,5 +34,5 @@ export const config = {
   // PDFs by magic bytes (see lib/blob.ts) and never stored with an image
   // extension, and canReadBlobPath's exact-URL DB check is the actual
   // authorization boundary for that route regardless of what proxy does.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
